@@ -4,8 +4,10 @@
 from enum import Enum
 from typing import List, Optional, Union
 
+from pydantic import BaseModel
 
-class SourceInfo:
+
+class SourceInfo(BaseModel):
     id: Optional[int]
     name: str
     state: str  # paused, playing, stopped, unknown, loading ???
@@ -16,7 +18,7 @@ class SourceInfo:
     img_url: Optional[str]
 
 
-class Source:
+class Source(BaseModel):
     """ An audio source """
     id: Optional[int]
     name: str
@@ -25,7 +27,7 @@ class Source:
     # playback')
 
 
-class SourceUpdate:
+class SourceUpdate(BaseModel):
     """ Partial reconfiguration of an audio Source """
     name: Optional[str]
     input: Optional[str]  # 'None', 'local', 'stream=ID'
@@ -36,7 +38,7 @@ class SourceUpdateWithId(SourceUpdate):
     id: int
 
 
-class Zone:
+class Zone(BaseModel):
     """ Audio output to a stereo pair of speakers, typically belonging to a room """
     id: Optional[int]
     name: str
@@ -46,7 +48,7 @@ class Zone:
     disabled: bool
 
 
-class ZoneUpdate:
+class ZoneUpdate(BaseModel):
     """ Reconfiguration of a Zone """
     name: Optional[str]
     source_id: Optional[int]
@@ -60,7 +62,7 @@ class ZoneUpdateWithId(ZoneUpdate):
     id: int
 
 
-class MultiZoneUpdate:
+class MultiZoneUpdate(BaseModel):
     """ Reconfiguration of multiple zones specified by zone_ids and group_ids """
     id: Optional[int]
     name: str
@@ -69,7 +71,7 @@ class MultiZoneUpdate:
     update: ZoneUpdate
 
 
-class Group:
+class Group(BaseModel):
     """ A group of zones that can share the same audio input and be controlled as a group ie. Updstairs. Volume,
     mute, and source_id fields are aggregates of the member zones. """
     id: Optional[int]
@@ -80,7 +82,7 @@ class Group:
     vol_delta: Optional[int]
 
 
-class GroupUpdate:
+class GroupUpdate(BaseModel):
     """ Reconfiguration of a Group """
     name: str
     source_id: Optional[int]
@@ -94,7 +96,7 @@ class GroupUpdateWithId(GroupUpdate):
     id: int
 
 
-class Stream:
+class Stream(BaseModel):
     """ Digital stream such as Pandora, Airplay or Spotify """
     id: Optional[int]
     name: str
@@ -109,7 +111,7 @@ class Stream:
     token: Optional[str]
 
 
-class StreamUpdate:
+class StreamUpdate(BaseModel):
     """ Reconfiguration of a Stream """
     name: str
     user: Optional[str]
@@ -131,7 +133,7 @@ class StreamCommand(str, Enum):
     SHELVE = 'shelve'
 
 
-class PresetState:
+class PresetState(BaseModel):
     """ A set of partial configuration changes to make to sources, zones, and groups """
     id: Optional[int]
     name: str
@@ -140,7 +142,7 @@ class PresetState:
     groups: Optional[List[GroupUpdateWithId]]
 
 
-class Command:
+class Command(BaseModel):
     """ A command to execute on a stream """
     id: Optional[int]
     name: str
@@ -148,7 +150,7 @@ class Command:
     cmd: str
 
 
-class Preset:
+class Preset(BaseModel):
     """ A partial controller configuration the can be loaded on demand. In addition to most of the configuration
     found in Status, this can contain commands as well that configure the state of different streaming services. """
     id: Optional[int]
@@ -158,7 +160,7 @@ class Preset:
     last_used: Union[int, None] = None
 
 
-class PresetUpdate:
+class PresetUpdate(BaseModel):
     """ Changes to a current preset
 
   The contents of state and commands will be completely replaced if populated. Merging old and new updates seems too
@@ -168,7 +170,7 @@ class PresetUpdate:
     commands: Optional[List[Command]]
 
 
-class Announcement:
+class Announcement(BaseModel):
     """ A PA-like Announcement
   IF no zones or groups are specified, all available zones are used
   """
@@ -179,7 +181,7 @@ class Announcement:
     groups: Optional[List[int]]
 
 
-class Info:
+class Info(BaseModel):
     """ Information about the settings used by the controller """
     config_file: str = 'Uknown'
     version: str = 'Unknown'
@@ -187,7 +189,7 @@ class Info:
     mock_streams: bool = False
 
 
-class Status:
+class Status(BaseModel):
     """ Full Controller Configuration and Status """
     sources: List[Source] = []
     zones: List[Zone] = []

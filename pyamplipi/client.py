@@ -3,6 +3,7 @@ from json.decoder import JSONDecodeError
 from urllib.parse import urljoin
 
 import requests
+from aiohttp import ClientSession, ClientResponse
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
 
@@ -20,7 +21,7 @@ class Client(object):
             self,
             endpoint: str,
             timeout: int = 10,
-            http_session: requests.Session = None,
+            http_session: ClientSession = None,
             verify_ssl: bool = False,
             disable_insecure_warning: bool = True,
     ) -> None:
@@ -30,7 +31,7 @@ class Client(object):
 
         self._endpoint = self._parse_endpoint(endpoint)
         self._timeout = timeout
-        self._http_session = http_session if http_session else requests.Session()
+        self._http_session = http_session if http_session else ClientSession()
         self._http_session.verify = verify_ssl
 
     @staticmethod
@@ -46,50 +47,53 @@ class Client(object):
         return endpoint
 
     @staticmethod
-    def _handle_error(response: requests.Response) -> None:
-        if response.status_code == 404:
+    def _handle_error(response: ClientResponse) -> None:
+        if response.status == 404:
             raise APIError(
-                "The url {} returned error 404".format(response.request.path_url)
+                "The url {} returned error 404".format(response.url)
             )
 
-        if response.status_code == 401 or response.status_code == 403:
+        if response.status == 401 or response.status == 403:
 
             try:
-                response_json = response.json()
+                response_json = await response.json()
             except Exception:
-                raise AccessDeniedError(response.request.path_url)
+                raise AccessDeniedError(response.url)
             else:
                 raise AccessDeniedError(
-                    response.request.path_url,
+                    response.url,
                     response_json.get("error"),
                     response_json.get("message"),
                 )
 
-        if response.text is not None and len(response.text) > 0:
+        body = await response.text()
+
+        if body is not None and len(body) > 0:
             raise APIError(
                 "API returned status code '{}: {}' with body: {}".format(
-                    response.status_code,
-                    responses.get(response.status_code),
-                    response.text,
+                    response.status,
+                    responses.get(response.status),
+                    body,
                 )
             )
         else:
             raise APIError(
                 "API returned status code '{}: {}' ".format(
-                    response.status_code, responses.get(response.status_code)
+                    response.status, responses.get(response.status)
                 )
             )
 
-    def _process_response(self, response: requests.Response) -> dict:
-        if response.status_code >= 400:
+    def _process_response(self, response: ClientResponse) -> dict:
+
+        if response.status >= 400:
             # API returned some sort of error that must be handled
             self._handle_error(response)
 
         try:
-            response_json = response.json()
+            response_json = await response.json()
         except JSONDecodeError:
             raise APIError(
-                "Error while decoding json of response: {}".format(response.text)
+                "Error while decoding json of response: {}".format(response.text())
             )
 
         if response_json is None:
@@ -105,70 +109,66 @@ class Client(object):
     def url(self, path: str):
         return urljoin(self._endpoint, path)
 
-    def delete(self, path: str, body=None, headers=None) -> dict:
+    async def delete(self, path: str, body=None, headers=None) -> dict:
         try:
-            response = self._http_session.delete(
-                url=self.url(path),
-                data=body,
-                timeout=self._timeout,
-                headers=headers_or_default(headers),
-            )
+            async with self._http_session.delete(
+                    url=self.url(path),
+                    data=body,
+                    timeout=self._timeout,
+                    headers=headers_or_default(headers),
+            ) as response:
+                return self._process_response(response)
         except (
                 requests.exceptions.ConnectionError,
                 requests.exceptions.ReadTimeout,
         ) as e:
             raise AmpliPiUnreachableError(e)
 
-        return self._process_response(response)
-
-    def patch(self, path: str, body=None, headers=None) -> dict:
+    async def patch(self, path: str, body=None, headers=None) -> dict:
         try:
-            response = self._http_session.patch(
-                url=self.url(path),
-                data=body,
-                timeout=self._timeout,
-                headers=headers_or_default(headers),
-            )
+            async with self._http_session.patch(
+                    url=self.url(path),
+                    data=body,
+                    timeout=self._timeout,
+                    headers=headers_or_default(headers),
+            ) as response:
+                return self._process_response(response)
         except (
                 requests.exceptions.ConnectionError,
                 requests.exceptions.ReadTimeout,
         ) as e:
             raise AmpliPiUnreachableError(e)
 
-        return self._process_response(response)
-
-    def post(self, path: str, body=None, headers=None) -> dict:
+    async def post(self, path: str, body=None, headers=None) -> dict:
         try:
-            response = self._http_session.post(
-                url=self.url(path),
-                data=body,
-                timeout=self._timeout,
-                headers=headers_or_default(headers),
-            )
+            async with self._http_session.post(
+                    url=self.url(path),
+                    data=body,
+                    timeout=self._timeout,
+                    headers=headers_or_default(headers),
+            ) as response:
+                return self._process_response(response)
         except (
                 requests.exceptions.ConnectionError,
                 requests.exceptions.ReadTimeout,
         ) as e:
             raise AmpliPiUnreachableError(e)
 
-        return self._process_response(response)
-
-    def get(self, path: str, headers=None) -> dict:
+    async def get(self, path: str, headers=None) -> dict:
         try:
-            response = self._http_session.get(
-                url=self.url(path),
-                timeout=self._timeout,
-                headers=headers_or_default(headers),
-            )
+            async with self._http_session.get(
+                    url=self.url(path),
+                    timeout=self._timeout,
+                    headers=headers_or_default(headers),
+            ) as response:
+                return self._process_response(response)
         except (
                 requests.exceptions.ConnectionError,
                 requests.exceptions.ReadTimeout,
         ) as e:
             raise AmpliPiUnreachableError(e)
 
-        return self._process_response(response)
-
-    def close(self):
+    async def close(self):
         # Close the HTTP Session
         # THis method is required for testing, so python doesn't complain about unclosed resources
-        self._http_session.close()
+        await self._http_session.close()
