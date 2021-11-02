@@ -83,11 +83,11 @@ class Client(object):
                 )
             )
 
-    def _process_response(self, response: ClientResponse) -> dict:
+    async def _process_response(self, response: ClientResponse) -> dict:
 
         if response.status >= 400:
             # API returned some sort of error that must be handled
-            self._handle_error(response)
+            await self._handle_error(response)
 
         try:
             response_json = await response.json()
@@ -117,7 +117,7 @@ class Client(object):
                     timeout=self._timeout,
                     headers=headers_or_default(headers),
             ) as response:
-                return self._process_response(response)
+                return await self._process_response(response)
         except (
                 requests.exceptions.ConnectionError,
                 requests.exceptions.ReadTimeout,
@@ -132,7 +132,7 @@ class Client(object):
                     timeout=self._timeout,
                     headers=headers_or_default(headers),
             ) as response:
-                return self._process_response(response)
+                return await self._process_response(response)
         except (
                 requests.exceptions.ConnectionError,
                 requests.exceptions.ReadTimeout,
@@ -147,7 +147,7 @@ class Client(object):
                     timeout=self._timeout,
                     headers=headers_or_default(headers),
             ) as response:
-                return self._process_response(response)
+                return await self._process_response(response)
         except (
                 requests.exceptions.ConnectionError,
                 requests.exceptions.ReadTimeout,
@@ -161,7 +161,7 @@ class Client(object):
                     timeout=self._timeout,
                     headers=headers_or_default(headers),
             ) as response:
-                return self._process_response(response)
+                return await self._process_response(response)
         except (
                 requests.exceptions.ConnectionError,
                 requests.exceptions.ReadTimeout,
