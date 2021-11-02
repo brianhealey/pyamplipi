@@ -47,7 +47,7 @@ class Client(object):
         return endpoint
 
     @staticmethod
-    def _handle_error(response: ClientResponse) -> None:
+    async def _handle_error(response: ClientResponse) -> None:
         if response.status == 404:
             raise APIError(
                 "The url {} returned error 404".format(response.url)
