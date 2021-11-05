@@ -8,7 +8,6 @@ from pydantic import BaseModel
 
 
 class SourceInfo(BaseModel):
-    id: Optional[int]
     name: str
     state: str  # paused, playing, stopped, unknown, loading ???
     artist: Optional[str]
@@ -64,7 +63,6 @@ class ZoneUpdateWithId(ZoneUpdate):
 
 class MultiZoneUpdate(BaseModel):
     """ Reconfiguration of multiple zones specified by zone_ids and group_ids """
-    id: Optional[int]
     name: str
     zones: Optional[List[int]]
     groups: Optional[List[int]]
@@ -84,7 +82,7 @@ class Group(BaseModel):
 
 class GroupUpdate(BaseModel):
     """ Reconfiguration of a Group """
-    name: str
+    name: Optional[str]
     source_id: Optional[int]
     zones: Optional[List[int]]
     mute: Optional[bool]
@@ -135,8 +133,6 @@ class StreamCommand(str, Enum):
 
 class PresetState(BaseModel):
     """ A set of partial configuration changes to make to sources, zones, and groups """
-    id: Optional[int]
-    name: str
     sources: Optional[List[SourceUpdateWithId]]
     zones: Optional[List[ZoneUpdateWithId]]
     groups: Optional[List[GroupUpdateWithId]]
@@ -144,15 +140,11 @@ class PresetState(BaseModel):
 
 class Command(BaseModel):
     """ A command to execute on a stream """
-    id: Optional[int]
-    name: str
     stream_id: int
     cmd: str
 
 
 class Preset(BaseModel):
-    """ A partial controller configuration the can be loaded on demand. In addition to most of the configuration
-    found in Status, this can contain commands as well that configure the state of different streaming services. """
     id: Optional[int]
     name: str
     state: Optional[PresetState]
@@ -161,19 +153,12 @@ class Preset(BaseModel):
 
 
 class PresetUpdate(BaseModel):
-    """ Changes to a current preset
-
-  The contents of state and commands will be completely replaced if populated. Merging old and new updates seems too
-  complicated and error prone. """
-    name: str
+    name: Optional[str]
     state: Optional[PresetState]
     commands: Optional[List[Command]]
 
 
 class Announcement(BaseModel):
-    """ A PA-like Announcement
-  IF no zones or groups are specified, all available zones are used
-  """
     media: str
     vol: int
     source_id: int
@@ -182,7 +167,6 @@ class Announcement(BaseModel):
 
 
 class Info(BaseModel):
-    """ Information about the settings used by the controller """
     config_file: str = 'Uknown'
     version: str = 'Unknown'
     mock_ctrl: bool = False
@@ -190,10 +174,16 @@ class Info(BaseModel):
 
 
 class Status(BaseModel):
-    """ Full Controller Configuration and Status """
     sources: List[Source] = []
     zones: List[Zone] = []
     groups: List[Group] = []
     streams: List[Stream] = []
     presets: List[Preset] = []
     info: Optional[Info]
+
+
+class AppSettings(BaseModel):
+    mock_ctrl: bool = True
+    mock_streams: bool = True
+    config_file: str = 'house.json'
+    delay_saves: bool = True

@@ -43,7 +43,7 @@ class AmpliPi:
 
     async def get_zones(self) -> List[Zone]:
         response = await self._client.get('zones')
-        return [Zone.parse_obj(zone) for zone in response]
+        return [Zone.parse_obj(zone) for zone in response['zones']]
 
     async def set_zones(self, zone_update: MultiZoneUpdate) -> Status:
         response = await self._client.patch('zones', json.dumps(zone_update))
@@ -59,7 +59,7 @@ class AmpliPi:
 
     async def get_groups(self) -> List[Group]:
         response = await self._client.get('groups')
-        return [Group.parse_obj(group) for group in response]
+        return [Group.parse_obj(group) for group in response['groups']]
 
     async def get_group(self, group_id) -> Group:
         response = await self._client.get(f'groups/{group_id}')
@@ -73,9 +73,9 @@ class AmpliPi:
         response = await self._client.patch(f'groups/{group_id}', update.json())
         return Group.parse_obj(response)
 
-    async def get_streams(self) -> Stream:
+    async def get_streams(self) -> List[Stream]:
         response = await self._client.get('streams')
-        return Stream.parse_obj(response)
+        return [Stream.parse_obj(stream) for stream in response['streams']]
 
     async def get_stream(self, stream_id: int) -> Stream:
         response = await self._client.get(f'streams/{stream_id}')
@@ -99,4 +99,7 @@ class AmpliPi:
 
     async def get_presets(self) -> List[Preset]:
         response = await self._client.get('presets')
-        return [Preset.parse_obj(preset) for preset in response]
+        return [Preset.parse_obj(preset) for preset in response['presets']]
+
+    async def close(self):
+        await self._client.close()
