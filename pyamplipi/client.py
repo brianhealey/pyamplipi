@@ -12,7 +12,11 @@ from .error import AccessDeniedError, APIError, AmpliPiUnreachableError
 
 def headers_or_default(headers=None):
     if headers is None:
-        return {}
+        return {
+            'Accept-Content': 'application/json',
+            'Content-Type': 'application/json',
+            'User-Agent': 'pyamplipi-client'
+        }
     return headers
 
 

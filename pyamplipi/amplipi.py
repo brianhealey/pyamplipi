@@ -41,20 +41,25 @@ class AmpliPi:
         response = await self._client.patch(f'sources/{source_id}', json.dumps(source_update))
         return Source.parse_obj(response)
 
+    async def get_zone(self, zone_id: int) -> Zone:
+        response = await self._client.get(f'zones/{zone_id}')
+        return Zone.parse_obj(response)
+
     async def get_zones(self) -> List[Zone]:
         response = await self._client.get('zones')
         return [Zone.parse_obj(zone) for zone in response['zones']]
 
     async def set_zones(self, zone_update: MultiZoneUpdate) -> Status:
-        response = await self._client.patch('zones', json.dumps(zone_update))
+        response = await self._client.patch('zones', zone_update.json())
         return Status.parse_obj(response)
 
     async def set_zone(self, zone_id: int, zone_update: ZoneUpdate) -> Zone:
-        response = await self._client.patch(f'zones/{zone_id}', json.dumps(zone_update))
-        return Zone.parse_obj(response)
+        response = await self._client.patch(f'zones/{zone_id}',
+                                            zone_update.json())
+        return Status.parse_obj(response)
 
     async def create_group(self, new_group: Group) -> Group:
-        response = await self._client.post('group', json.dumps(new_group))
+        response = await self._client.post('group', new_group.json())
         return Group.parse_obj(response)
 
     async def get_groups(self) -> List[Group]:
@@ -63,7 +68,7 @@ class AmpliPi:
 
     async def get_group(self, group_id) -> Group:
         response = await self._client.get(f'groups/{group_id}')
-        return Group.parse_obj(response)
+        return Status.parse_obj(response)
 
     async def delete_group(self, group_id):
         response = await self._client.delete(f'groups/{group_id}')
@@ -71,7 +76,7 @@ class AmpliPi:
 
     async def set_group(self, group_id, update: GroupUpdate) -> Group:
         response = await self._client.patch(f'groups/{group_id}', update.json())
-        return Group.parse_obj(response)
+        return Status.parse_obj(response)
 
     async def get_streams(self) -> List[Stream]:
         response = await self._client.get('streams')
@@ -81,8 +86,20 @@ class AmpliPi:
         response = await self._client.get(f'streams/{stream_id}')
         return Stream.parse_obj(response)
 
+    async def play_stream(self, stream_id: int) -> Stream:
+        response = await self._client.post(f'streams/{stream_id}/play')
+        return Stream.parse_obj(response)
+
+    async def pause_stream(self, stream_id: int) -> Stream:
+        response = await self._client.post(f'streams/{stream_id}/pause')
+        return Stream.parse_obj(response)
+
+    async def next_stream(self, stream_id: int) -> Stream:
+        response = await self._client.post(f'streams/{stream_id}/next')
+        return Stream.parse_obj(response)
+
     async def create_stream(self, new_stream: Stream) -> Stream:
-        response = await self._client.post(f'streams', json.dumps(new_stream))
+        response = await self._client.post(f'streams', new_stream.json())
         return Stream.parse_obj(response)
 
     async def delete_stream(self, stream_id: int) -> Status:
@@ -90,11 +107,11 @@ class AmpliPi:
         return Status.parse_obj(response)
 
     async def set_stream(self, stream_id: int, update: StreamUpdate) -> Stream:
-        response = await self._client.post(f'streams/{stream_id}', json.dumps(update))
-        return Stream.parse_obj(response)
+        response = await self._client.post(f'streams/{stream_id}', update.json())
+        return Status.parse_obj(response)
 
     async def announce(self, announcement: Announcement) -> Status:
-        response = await self._client.post('announce', json.dumps(announcement))
+        response = await self._client.post('announce', announcement.json())
         return Status.parse_obj(response)
 
     async def get_presets(self) -> List[Preset]:

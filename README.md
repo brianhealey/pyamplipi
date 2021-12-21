@@ -2,7 +2,7 @@ pyamplipi
 ====
 
 pyAmpliPi is a Python library that allows you to
-control an `AmpliPi` programatically via the restful api provided by the device.
+control an `AmpliPi` programmatically via the restful api provided by the device.
 
 The `get_status()` function returns a _Status_ object which contains the current running configuration for the 
 controller including the firmware and configuration files used. This can be used to verify connectivity to a 
@@ -15,7 +15,7 @@ calls that require updates more often. In these cases, the specific endpoints sh
 - get_groups
 - get_zones
 
-`Set` Methods are provided to update inputes, sources, zones, and groups.
+`Set` Methods are provided to update inputs, sources, zones, and groups.
 
 `announce` provides access to PA capabilities by providing a URL as the `media` value
 
