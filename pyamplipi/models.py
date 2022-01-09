@@ -24,12 +24,16 @@ class Source(BaseModel):
     input: str
     info: Optional[SourceInfo]  # Additional info about the current audio playing from the stream (generated during
     # playback')
+    mute: Optional[bool]
+    vol_delta: Optional[int]
 
 
 class SourceUpdate(BaseModel):
     """ Partial reconfiguration of an audio Source """
     name: Optional[str]
     input: Optional[str]  # 'None', 'local', 'stream=ID'
+    mute: Optional[bool]
+    vol_delta: Optional[int]
 
 
 class SourceUpdateWithId(SourceUpdate):
