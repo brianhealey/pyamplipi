@@ -6,7 +6,7 @@ import asyncio
 import logging
 
 from pyamplipi.amplipi import AmpliPi
-from pyamplipi.models import ZoneUpdate, ZoneUpdateWithId
+from pyamplipi.models import ZoneUpdate, ZoneUpdateWithId, SourceUpdate
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -17,13 +17,10 @@ async def get_status():
         10,
     )
     result = await amp.get_status()
-    zone = result.zones.pop()
-    update = await amp.set_zone(zone.id, ZoneUpdate(
-        name=zone.name,
-        source_id=zone.source_id,
-        mute=not zone.mute,
-        vol=zone.vol - 5,
-        disabled=not zone.disabled
+    source = result.sources.pop()
+    update = await amp.set_source(source.id, SourceUpdate(
+        mute=not source.mute,
+        vol_delta=.01
     ))
     _LOGGER.info(update)
     await amp.close()

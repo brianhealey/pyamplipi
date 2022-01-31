@@ -37,9 +37,9 @@ class AmpliPi:
         response = await self._client.get(f'sources/{source_id}')
         return Source.parse_obj(response)
 
-    async def set_source(self, source_id: int, source_update: SourceUpdate) -> Source:
-        response = await self._client.patch(f'sources/{source_id}', json.dumps(source_update))
-        return Source.parse_obj(response)
+    async def set_source(self, source_id: int, source_update: SourceUpdate) -> Status:
+        response = await self._client.patch(f'sources/{source_id}', source_update.json())
+        return Status.parse_obj(response)
 
     async def get_zone(self, zone_id: int) -> Zone:
         response = await self._client.get(f'zones/{zone_id}')
@@ -53,7 +53,7 @@ class AmpliPi:
         response = await self._client.patch('zones', zone_update.json())
         return Status.parse_obj(response)
 
-    async def set_zone(self, zone_id: int, zone_update: ZoneUpdate) -> Zone:
+    async def set_zone(self, zone_id: int, zone_update: ZoneUpdate) -> Status:
         response = await self._client.patch(f'zones/{zone_id}',
                                             zone_update.json())
         return Status.parse_obj(response)
@@ -68,13 +68,13 @@ class AmpliPi:
 
     async def get_group(self, group_id) -> Group:
         response = await self._client.get(f'groups/{group_id}')
-        return Status.parse_obj(response)
+        return Group.parse_obj(response)
 
     async def delete_group(self, group_id):
         response = await self._client.delete(f'groups/{group_id}')
         return Status.parse_obj(response)
 
-    async def set_group(self, group_id, update: GroupUpdate) -> Group:
+    async def set_group(self, group_id, update: GroupUpdate) -> Status:
         response = await self._client.patch(f'groups/{group_id}', update.json())
         return Status.parse_obj(response)
 
@@ -108,7 +108,7 @@ class AmpliPi:
 
     async def set_stream(self, stream_id: int, update: StreamUpdate) -> Stream:
         response = await self._client.post(f'streams/{stream_id}', update.json())
-        return Status.parse_obj(response)
+        return Stream.parse_obj(response)
 
     async def announce(self, announcement: Announcement) -> Status:
         response = await self._client.post('announce', announcement.json())
