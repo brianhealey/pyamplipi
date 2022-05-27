@@ -88,19 +88,27 @@ class AmpliPi:
 
     async def play_stream(self, stream_id: int) -> Stream:
         response = await self._client.post(f'streams/{stream_id}/play')
-        return Stream.parse_obj(response)
+        return Status.parse_obj(response)
 
     async def pause_stream(self, stream_id: int) -> Stream:
         response = await self._client.post(f'streams/{stream_id}/pause')
-        return Stream.parse_obj(response)
+        return Status.parse_obj(response)
+
+    async def previous_stream(self, stream_id: int) -> Stream:
+        response = await self._client.post(f'streams/{stream_id}/prev')
+        return Status.parse_obj(response)
 
     async def next_stream(self, stream_id: int) -> Stream:
         response = await self._client.post(f'streams/{stream_id}/next')
+        return Status.parse_obj(response)
+
+    async def stop_stream(self, stream_id: int) -> Stream:
+        response = await self._client.post(f'streams/{stream_id}/stop')
         return Stream.parse_obj(response)
 
     async def create_stream(self, new_stream: Stream) -> Stream:
         response = await self._client.post(f'streams', new_stream.json())
-        return Stream.parse_obj(response)
+        return Status.parse_obj(response)
 
     async def delete_stream(self, stream_id: int) -> Status:
         response = await self._client.delete(f'streams/{stream_id}')
