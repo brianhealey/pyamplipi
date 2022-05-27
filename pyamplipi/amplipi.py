@@ -102,6 +102,10 @@ class AmpliPi:
         response = await self._client.post(f'streams/{stream_id}/next')
         return Status.parse_obj(response)
 
+    async def stop_stream(self, stream_id: int) -> Stream:
+        response = await self._client.post(f'streams/{stream_id}/stop')
+        return Stream.parse_obj(response)
+
     async def create_stream(self, new_stream: Stream) -> Stream:
         response = await self._client.post(f'streams', new_stream.json())
         return Status.parse_obj(response)

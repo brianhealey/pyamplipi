@@ -15,6 +15,7 @@ class SourceInfo(BaseModel):
     album: Optional[str]
     station: Optional[str]  # name of radio station
     img_url: Optional[str]
+    supported_cmds: List[str] = []
 
 
 class Source(BaseModel):
@@ -24,17 +25,12 @@ class Source(BaseModel):
     input: str
     info: Optional[SourceInfo]  # Additional info about the current audio playing from the stream (generated during
     # playback')
-    mute: Optional[bool]
-    vol_delta: Optional[int]
 
 
 class SourceUpdate(BaseModel):
     """ Partial reconfiguration of an audio Source """
     name: Optional[str]
     input: Optional[str]  # 'None', 'local', 'stream=ID'
-    mute: Optional[bool]
-    vol_delta: Optional[int]
-
 
 class SourceUpdateWithId(SourceUpdate):
     """ Partial reconfiguration of a specific audio Source """
@@ -48,6 +44,9 @@ class Zone(BaseModel):
     source_id: int
     mute: bool
     vol: int
+    vol_f: float
+    vol_min: int
+    vol_max: int
     disabled: bool
 
 
@@ -57,6 +56,9 @@ class ZoneUpdate(BaseModel):
     source_id: Optional[int]
     mute: Optional[bool]
     vol: Optional[int]
+    vol_f: Optional[float]
+    vol_min: Optional[int]
+    vol_max: Optional[int]
     disabled: Optional[bool]
 
 
@@ -67,21 +69,21 @@ class ZoneUpdateWithId(ZoneUpdate):
 
 class MultiZoneUpdate(BaseModel):
     """ Reconfiguration of multiple zones specified by zone_ids and group_ids """
-    name: str
     zones: Optional[List[int]]
     groups: Optional[List[int]]
     update: ZoneUpdate
 
 
 class Group(BaseModel):
-    """ A group of zones that can share the same audio input and be controlled as a group ie. Updstairs. Volume,
-    mute, and source_id fields are aggregates of the member zones. """
+    """ A group of zones that can share the same audio input and be controlled as a group ie. Upstairs. Volume, mute,
+    and source_id fields are aggregates of the member zones."""
     id: Optional[int]
     name: str
     source_id: Optional[int]
     zones: List[int]
     mute: Optional[bool]
     vol_delta: Optional[int]
+    vol_f: Optional[float]
 
 
 class GroupUpdate(BaseModel):
@@ -91,6 +93,7 @@ class GroupUpdate(BaseModel):
     zones: Optional[List[int]]
     mute: Optional[bool]
     vol_delta: Optional[int]
+    vol_f: Optional[float]
 
 
 class GroupUpdateWithId(GroupUpdate):
@@ -99,7 +102,7 @@ class GroupUpdateWithId(GroupUpdate):
 
 
 class Stream(BaseModel):
-    """ Digital stream such as Pandora, Airplay or Spotify """
+    """ Digital stream such as Pandora, AirPlay or Spotify """
     id: Optional[int]
     name: str
     type: str
@@ -165,6 +168,7 @@ class PresetUpdate(BaseModel):
 class Announcement(BaseModel):
     media: str
     vol: Optional[int]
+    vol_f: float
     source_id: int
     zones: Optional[List[int]]
     groups: Optional[List[int]]
