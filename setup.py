@@ -14,6 +14,16 @@ if sys.argv[-1] == 'publish':
     os.system('python setup.py sdist upload')
     sys.exit()
 
+
+def required(sfx=''):
+    """ Load the requirements from the requirements.txt file"""
+    reqs = []
+    try:
+        with open(f"requirements{sfx}.txt") as f:
+            reqs = [ln.strip() for ln in f.readlines() if not ln.startswith('-') and not ln.startswith('#') and ln.strip() != '']
+    finally:
+        return reqs
+
 license = """
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -37,7 +47,7 @@ setup(name='pyamplipi',
       author='HeeHee Software',
       author_email='brian.healey@gmail.com',
       license='GPL',
-      install_requires=[],
+      install_requires=required(),
       packages=['pyamplipi'],
       classifiers=['Development Status :: 4 - Beta',
                    'Programming Language :: Python :: 3.5',
