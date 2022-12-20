@@ -18,11 +18,9 @@ if sys.argv[-1] == 'publish':
 def required(sfx=''):
     """ Load the requirements from the requirements.txt file"""
     reqs = []
-    try:
-        with open(f"requirements{sfx}.txt") as f:
-            reqs = [ln.strip() for ln in f.readlines() if not ln.startswith('-') and not ln.startswith('#') and ln.strip() != '']
-    finally:
-        return reqs
+    with open(f"requirements{sfx}.txt") as f:
+        reqs = [ln.strip() for ln in f.readlines() if not ln.startswith('-') and not ln.startswith('#') and ln.strip() != '']
+
 
 license = """
 # This program is free software: you can redistribute it and/or modify
