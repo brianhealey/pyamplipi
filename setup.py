@@ -4,6 +4,7 @@ import os
 import sys
 
 VERSION = '0.4.9'
+NAME = 'pyamplipi'
 
 try:
     from setuptools import setup
@@ -38,17 +39,28 @@ license = """
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-setup(name='pyamplipi',
-      version=VERSION,
-      description='Python API for interacting with the AmpliPi Multizone Audio Controller',
-      url='https://github.com/brianhealey/pyamplipi',
-      download_url='https://github.com/brianhealey/pyamplipi/archive/{}.tar.gz'.format(VERSION),
-      author='HeeHee Software',
-      author_email='brian.healey@gmail.com',
-      license='GPL',
-      install_requires=required(),
-      packages=['pyamplipi'],
-      classifiers=['Development Status :: 4 - Beta',
-                   'Programming Language :: Python :: 3.5',
-                   'Programming Language :: Python :: 3.6'],
-      zip_safe=True)
+console_scripts = [f'{NAME} = {NAME}.__main__:main']
+
+print("console-scripts = ", console_scripts)
+print("required-dev = ", required('-dev') )
+
+setup(
+    name=NAME,
+    version=VERSION,
+    description='Python API for interacting with the AmpliPi Multizone Audio Controller',
+    url='https://github.com/brianhealey/pyamplipi',
+    download_url='https://github.com/brianhealey/pyamplipi/archive/{}.tar.gz'.format(VERSION),
+    author='HeeHee Software',
+    author_email='brian.healey@gmail.com',
+    license='GPL',
+    install_requires=required(),
+    extras_require=dict(
+        dev=required('-dev')
+    ), 
+    entry_points=dict(console_scripts=console_scripts),
+    packages=['pyamplipi'],
+    classifiers=['Development Status :: 4 - Beta',
+                 'Programming Language :: Python :: 3.5',
+                 'Programming Language :: Python :: 3.6'],
+    zip_safe=True,
+)
