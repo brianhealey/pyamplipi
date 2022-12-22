@@ -118,8 +118,8 @@ class AmpliPi:
         response = await self._client.post(f'streams/{stream_id}', update.json())
         return Stream.parse_obj(response)
 
-    async def announce(self, announcement: Announcement) -> Status:
-        response = await self._client.post('announce', announcement.json())
+    async def announce(self, announcement: Announcement, timeout: int = None) -> Status:
+        response = await self._client.post('announce', announcement.json(), timeout = timeout)
         return Status.parse_obj(response)
 
     async def get_presets(self) -> List[Preset]:
