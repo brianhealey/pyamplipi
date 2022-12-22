@@ -1,4 +1,3 @@
-import json
 from typing import List
 
 from aiohttp import ClientSession
@@ -107,7 +106,7 @@ class AmpliPi:
         return Status.parse_obj(response)
 
     async def create_stream(self, new_stream: Stream) -> Stream:
-        response = await self._client.post(f'streams', new_stream.json())
+        response = await self._client.post('streams', new_stream.json())
         return Status.parse_obj(response)
 
     async def delete_stream(self, stream_id: int) -> Status:

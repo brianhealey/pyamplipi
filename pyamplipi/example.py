@@ -6,7 +6,7 @@ import asyncio
 import logging
 
 from pyamplipi.amplipi import AmpliPi
-from pyamplipi.models import ZoneUpdate, ZoneUpdateWithId, SourceUpdate
+from pyamplipi.models import SourceUpdate
 
 _LOGGER = logging.getLogger(__name__)
 

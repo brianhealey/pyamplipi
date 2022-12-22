@@ -41,9 +41,6 @@ license = """
 
 console_scripts = [f'{NAME} = {NAME}.__main__:main']
 
-print("console-scripts = ", console_scripts)
-print("required-dev = ", required('-dev') )
-
 setup(
     name=NAME,
     version=VERSION,
@@ -56,7 +53,7 @@ setup(
     install_requires=required(),
     extras_require=dict(
         dev=required('-dev')
-    ), 
+    ),
     entry_points=dict(console_scripts=console_scripts),
     packages=['pyamplipi'],
     classifiers=['Development Status :: 4 - Beta',

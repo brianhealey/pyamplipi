@@ -32,6 +32,7 @@ class SourceUpdate(BaseModel):
     name: Optional[str]
     input: Optional[str]  # 'None', 'local', 'stream=ID'
 
+
 class SourceUpdateWithId(SourceUpdate):
     """ Partial reconfiguration of a specific audio Source """
     id: int
