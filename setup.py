@@ -20,6 +20,7 @@ def required(sfx=''):
     reqs = []
     with open(f"requirements{sfx}.txt") as f:
         reqs = [ln.strip() for ln in f.readlines() if not ln.startswith('-') and not ln.startswith('#') and ln.strip() != '']
+    return reqs
 
 
 license = """
