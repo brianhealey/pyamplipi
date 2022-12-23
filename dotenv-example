@@ -1,0 +1,8 @@
+# INSTRUCTIONS:
+#    - save/copy this example file under the name .env
+#    - uncomment the environment variable assignments and change their values 
+#      to match your local environment
+# --------------------------------------------------------------------------------------------------------------------------------
+# local .env file allows to set recurring base values for the API client
+# AMPLIPI_API_URL="http://amplipi.local:5000/api"   # sets the api_uri default for the -a switch
+# AMPLIPI_TIMEOUT=10                                # sets the timeout default for the -t switch
