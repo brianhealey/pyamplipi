@@ -125,5 +125,9 @@ class AmpliPi:
         response = await self._client.get('presets')
         return [Preset.parse_obj(preset) for preset in response['presets']]
 
+    async def get_preset(self, preset_id: int) -> Preset:
+        response = await self._client.get(f'presets/{preset_id}')
+        return Preset.parse_obj(response)
+
     async def close(self):
         await self._client.close()

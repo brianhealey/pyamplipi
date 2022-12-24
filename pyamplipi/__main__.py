@@ -11,6 +11,7 @@ from tabulate import tabulate
 from textwrap import indent
 from pyamplipi.models import Status, Info, Source, Zone, Group, Stream, Preset  # , Announcement
 from pyamplipi.amplipi import AmpliPi
+from pyamplipi.error import APIError
 
 
 # constants
@@ -100,7 +101,13 @@ async def do_source_list(args: Namespace, amplipi: AmpliPi):
     sources: List[Source] = await amplipi.get_sources()
     list_sources(sources)
 
-# async def do_source_get(args: Namespace, amplipi: AmpliPi):
+
+async def do_source_get(args: Namespace, amplipi: AmpliPi):
+    log.debug(f"source.get({args.sourceid})")
+    assert 0 <= args.sourceid <= 3, "source id must be in range 0..3"
+    source: Source = await amplipi.get_source(args.sourceid)
+    print(source.json(**json_ser_kwargs))
+
 # async def do_source_set(args: Namespace, amplipi: AmpliPi):
 
 
@@ -109,7 +116,13 @@ async def do_zone_list(args: Namespace, amplipi: AmpliPi):
     zones: List[Zone] = await amplipi.get_zones()
     list_zones(zones)
 
-# async def do_zone_get(args: Namespace, amplipi: AmpliPi):
+
+async def do_zone_get(args: Namespace, amplipi: AmpliPi):
+    log.debug(f"zone.get({args.zoneid})")
+    assert 0 <= args.zoneid <= 35, "zone id must be in range 0..35"
+    zone: Zone = await amplipi.get_zone(args.zoneid)
+    print(zone.json(**json_ser_kwargs))
+
 # async def do_zone_set(args: Namespace, amplipi: AmpliPi):
 
 
@@ -118,7 +131,13 @@ async def do_group_list(args: Namespace, amplipi: AmpliPi):
     groups: List[Group] = await amplipi.get_groups()
     list_groups(groups)
 
-# async def do_group_get(args: Namespace, amplipi: AmpliPi):
+
+async def do_group_get(args: Namespace, amplipi: AmpliPi):
+    log.debug(f"group.get({args.groupid})")
+    assert 0 <= args.groupid, "group id must be > 0"
+    group: Group = await amplipi.get_group(args.groupid)
+    print(group.json(**json_ser_kwargs))
+
 # async def do_group_set(args: Namespace, amplipi: AmpliPi):
 # async def do_group_load(args: Namespace, amplipi: AmpliPi):
 # async def do_group_new(args: Namespace, amplipi: AmpliPi):
@@ -131,7 +150,15 @@ async def do_stream_list(args: Namespace, amplipi: AmpliPi):
     list_streams(streams)
 
 # async def do_announce(args: Namespace, amplipi: AmpliPi):
-# async def do_stream_get(args: Namespace, amplipi: AmpliPi):
+
+
+async def do_stream_get(args: Namespace, amplipi: AmpliPi):
+    log.debug(f"stream.get({args.streamid})")
+    assert 0 <= args.streamid, "stream id must be > 0"
+    stream: Stream = await amplipi.get_stream(args.streamid)
+    print(stream.json(**json_ser_kwargs))
+
+
 # async def do_stream_set(args: Namespace, amplipi: AmpliPi):
 # async def do_stream_new(args: Namespace, amplipi: AmpliPi):
 # async def do_stream_del(args: Namespace, amplipi: AmpliPi):
@@ -147,7 +174,14 @@ async def do_preset_list(args: Namespace, amplipi: AmpliPi):
     preset: List[Preset] = await amplipi.get_presets()
     list_presets(preset)
 
-# async def do_preset_get(args: Namespace, amplipi: AmpliPi):
+
+async def do_preset_get(args: Namespace, amplipi: AmpliPi):
+    log.debug(f"preset.get({args.presetid})")
+    assert 0 <= args.presetid, "preset id must be > 0"
+    preset: Preset = await amplipi.get_preset(args.presetid)
+    print(preset.json(**json_ser_kwargs))
+
+
 # async def do_preset_set(args: Namespace, amplipi: AmpliPi):
 # async def do_preset_new(args: Namespace, amplipi: AmpliPi):
 # async def do_preset_del(args: Namespace, amplipi: AmpliPi):
@@ -204,11 +238,7 @@ def get_arg_parser():
     topic_preset_ap = topics_subs.add_parser("presets", aliases=['pr', 'pre', 'preset'], help="manage the presets")
 
     # details of the status handling branch
-    status_subs = topic_status_ap.add_subparsers(
-        title='actions to perform',
-        required=True,
-        metavar="ACTION",
-    )
+    status_subs = topic_status_ap.add_subparsers(title='actions to perform', required=True, metavar="ACTION",)
     # -- status list
     status_subs.add_parser('list', aliases=['ls'], help="list status overview").set_defaults(func=do_status_list)
     # -- status get
@@ -217,37 +247,29 @@ def get_arg_parser():
     status_subs.add_parser('set', help="overwrites status json with input from stdin").set_defaults(func=do_placeholder)
 
     # details of the source handling branch
-    source_subs = topic_source_ap.add_subparsers(
-        title='actions to perform',
-        required=True,
-        metavar="ACTION",
-    )
+    source_subs = topic_source_ap.add_subparsers(title='actions to perform', required=True, metavar="ACTION",)
     # -- source list
     source_subs.add_parser('list', aliases=['ls'], help="list sources overview").set_defaults(func=do_source_list)
     # -- source get
     get_source_ap = source_subs.add_parser('get', help="dumps source configuration json to stdout")
-    get_source_ap.add_argument("sourceid", action='store', metavar="ID", help="identifier of the source, or '*' for all")
-    get_source_ap.set_defaults(func=do_placeholder)
+    get_source_ap.add_argument("sourceid", action='store', type=int, metavar="ID", help="identifier of the source")
+    get_source_ap.set_defaults(func=do_source_get)
     # -- source set
     set_source_ap = source_subs.add_parser('set', help="overwrites source configuration with json input from stdin")
-    set_source_ap.add_argument("sourceid", action='store', metavar="ID", help="identifier of the source")
+    set_source_ap.add_argument("sourceid", action='store', type=int, metavar="ID", help="identifier of the source")
     set_source_ap.set_defaults(func=do_placeholder)
 
     # details of the zone handling branch
-    zone_subs = topic_zone_ap.add_subparsers(
-        title='actions to perform',
-        required=True,
-        metavar="ACTION",
-    )
+    zone_subs = topic_zone_ap.add_subparsers(title='actions to perform', required=True, metavar="ACTION",)
     # -- zone list
     zone_subs.add_parser('list', aliases=['ls'], help="list zones overview").set_defaults(func=do_zone_list)
     # -- zone get
     get_zone_ap = zone_subs.add_parser('get', help="dumps zone configuration json to stdout")
-    get_zone_ap.add_argument("zoneid", action='store', metavar="ID", help="identifier of the zone, or '*' for all")
-    get_zone_ap.set_defaults(func=do_placeholder)
+    get_zone_ap.add_argument("zoneid", action='store', type=int, metavar="ID", help="identifier of the zone")
+    get_zone_ap.set_defaults(func=do_zone_get)
     # -- zone set
     set_zone_ap = zone_subs.add_parser('set', help="overwrites zone configuration with json input from stdin")
-    set_zone_ap.add_argument("zoneid", action='store', metavar="ID", help="identifier of the zone")
+    set_zone_ap.add_argument("zoneid", action='store', type=int, metavar="ID", help="identifier of the zone")
     set_zone_ap.set_defaults(func=do_placeholder)
 
     # details of the group handling branch
@@ -256,15 +278,15 @@ def get_arg_parser():
     group_subs.add_parser('list', aliases=['ls'], help="list groups overview").set_defaults(func=do_group_list)
     # -- group get
     get_group_ap = group_subs.add_parser('get', help="dumps group configuration json to stdout")
-    get_group_ap.add_argument("groupid", action='store', metavar="ID", help="identifier of the group, or '*' for all")
-    get_group_ap.set_defaults(func=do_placeholder)
+    get_group_ap.add_argument("groupid", action='store', type=int, metavar="ID", help="identifier of the group")
+    get_group_ap.set_defaults(func=do_group_get)
     # -- group set
     set_group_ap = group_subs.add_parser('set', help="overwrites group configuration with json input from stdin")
-    set_group_ap.add_argument("groupid", action='store', metavar="ID", help="identifier of the group")
+    set_group_ap.add_argument("groupid", action='store', type=int, metavar="ID", help="identifier of the group")
     set_group_ap.set_defaults(func=do_placeholder)
     # -- group load
     load_group_ap = group_subs.add_parser('load', help="overwrites group configuration with json input from stdin")
-    load_group_ap.add_argument("groupid", action='store', metavar="ID", help="identifier of the group")
+    load_group_ap.add_argument("groupid", action='store', type=int, metavar="ID", help="identifier of the group")
     load_group_ap.set_defaults(func=do_placeholder)
     # -- group new
     group_subs.add_parser(
@@ -273,7 +295,7 @@ def get_arg_parser():
         ).set_defaults(func=do_placeholder)
     # -- group del
     del_group_ap = group_subs.add_parser('delete', aliases=['del', 'rm'], help="deletes the specified group")
-    del_group_ap.add_argument("groupid", action='store', metavar="ID", help="identifier of the group")
+    del_group_ap.add_argument("groupid", action='store', type=int, metavar="ID", help="identifier of the group")
     del_group_ap.set_defaults(func=do_placeholder)
 
     # details of the stream handling branch
@@ -282,11 +304,11 @@ def get_arg_parser():
     stream_subs.add_parser('list', aliases=['ls'], help="list streams overview").set_defaults(func=do_stream_list)
     # -- stream get
     get_stream_ap = stream_subs.add_parser('get', help="dumps stream configuration json to stdout")
-    get_stream_ap.add_argument("streamid", action='store', metavar="ID", help="identifier of the stream, or '*' for all")
-    get_stream_ap.set_defaults(func=do_placeholder)
+    get_stream_ap.add_argument("streamid", action='store', type=int, metavar="ID", help="identifier of the stream")
+    get_stream_ap.set_defaults(func=do_stream_get)
     # -- stream set
     set_stream_ap = stream_subs.add_parser('set', help="overwrites stream configuration with json input from stdin")
-    set_stream_ap.add_argument("streamid", action='store', metavar="ID", help="identifier of the stream")
+    set_stream_ap.add_argument("streamid", action='store', type=int, metavar="ID", help="identifier of the stream")
     set_stream_ap.set_defaults(func=do_placeholder)
     # -- stream new
     stream_subs.add_parser(
@@ -295,67 +317,58 @@ def get_arg_parser():
         ).set_defaults(func=do_placeholder)
     # -- stream del
     del_stream_ap = stream_subs.add_parser('delete', aliases=['del', 'rm'], help="deletes the specified stream")
-    del_stream_ap.add_argument("streamid", action='store', metavar="ID", help="identifier of the stream")
+    del_stream_ap.add_argument("streamid", action='store', type=int, metavar="ID", help="identifier of the stream")
     del_stream_ap.set_defaults(func=do_placeholder)
     # -- stream play
     play_stream_ap = stream_subs.add_parser('play', aliases=['pl'], help="plays the specified stream")
-    play_stream_ap.add_argument("streamid", action='store', metavar="ID", help="identifier of the stream")
+    play_stream_ap.add_argument("streamid", action='store', type=int, metavar="ID", help="identifier of the stream")
     play_stream_ap.set_defaults(func=do_placeholder)
     # -- stream pause
     pause_stream_ap = stream_subs.add_parser('pause', aliases=['ps'], help="pauses the specified stream")
-    pause_stream_ap.add_argument("streamid", action='store', metavar="ID", help="identifier of the stream")
+    pause_stream_ap.add_argument("streamid", action='store', type=int, metavar="ID", help="identifier of the stream")
     pause_stream_ap.set_defaults(func=do_placeholder)
     # -- stream stop
     stop_stream_ap = stream_subs.add_parser('stop', aliases=['st'], help="stops the specified stream")
-    stop_stream_ap.add_argument("streamid", action='store', metavar="ID", help="identifier of the stream")
+    stop_stream_ap.add_argument("streamid", action='store', type=int, metavar="ID", help="identifier of the stream")
     stop_stream_ap.set_defaults(func=do_placeholder)
     # -- stream next
     next_stream_ap = stream_subs.add_parser('next', aliases=['fwd', '»'], help="forwards the specified stream to next item")
-    next_stream_ap.add_argument("streamid", action='store', metavar="ID", help="identifier of the stream")
+    next_stream_ap.add_argument("streamid", action='store', type=int, metavar="ID", help="identifier of the stream")
     next_stream_ap.set_defaults(func=do_placeholder)
     # -- stream prev
     prev_stream_ap = stream_subs.add_parser(
-        'previous',
-        aliases=['prev', 'back', 'bwd', '«'],
+        'previous', aliases=['prev', 'back', 'bwd', '«'],
         help="reverses the specified stream back to the previous item")
-    prev_stream_ap.add_argument("streamid", action='store', metavar="ID", help="identifier of the stream")
+    prev_stream_ap.add_argument("streamid", action='store', type=int, metavar="ID", help="identifier of the stream")
     prev_stream_ap.set_defaults(func=do_placeholder)
 
     # details of the announce handling branch
     topic_announce_ap.add_argument("media_url", metavar="URL", action='store', help="URL to playable audio file")
     topic_announce_ap.add_argument(
-        "vol_f",
-        metavar="volume%",
-        nargs='*',
-        action='store',
-        help="float between 0 and 1 indicating volume")
+        "vol_f", metavar="volume%", nargs='*',
+        action='store', help="float between 0 and 1 indicating volume")
     topic_announce_ap.set_defaults(func=do_placeholder)
 
     # details of the preset handling branch
-    preset_subs = topic_preset_ap.add_subparsers(
-        title='actions to perform',
-        required=True,
-        metavar="ACTION",
-    )
+    preset_subs = topic_preset_ap.add_subparsers(title='actions to perform', required=True, metavar="ACTION",)
     # -- preset list
     preset_subs.add_parser('list', aliases=['ls'], help="list presets overview").set_defaults(func=do_preset_list)
     # -- preset get
     get_preset_ap = preset_subs.add_parser('get', help="dumps preset configuration json to stdout")
-    get_preset_ap.add_argument("presetid", action='store', metavar="ID", help="identifier of the preset, or '*' for all")
-    get_preset_ap.set_defaults(func=do_placeholder)
+    get_preset_ap.add_argument("presetid", action='store', type=int, metavar="ID", help="identifier of the preset")
+    get_preset_ap.set_defaults(func=do_preset_get)
     # -- preset set
     set_preset_ap = preset_subs.add_parser('set', help="overwrites preset configuration with json input from stdin")
-    set_preset_ap.add_argument("presetid", action='store', metavar="ID", help="identifier of the preset")
+    set_preset_ap.add_argument("presetid", action='store', type=int, metavar="ID", help="identifier of the preset")
     set_preset_ap.set_defaults(func=do_placeholder)
     # -- preset new
     preset_subs.add_parser(
-            'new',
-            aliases=['make', 'create'],
+            'new', aliases=['make', 'create'],
             help="create a new preset based on the json input from stdin"
         ).set_defaults(func=do_placeholder)
     # -- preset del
     del_preset_ap = preset_subs.add_parser('delete', aliases=['del', 'rm'], help="deletes the specified preset")
-    del_preset_ap.add_argument("presetid", action='store', metavar="ID", help="identifier of the preset")
+    del_preset_ap.add_argument("presetid", action='store', type=int, metavar="ID", help="identifier of the preset")
     del_preset_ap.set_defaults(func=do_placeholder)
     return parent_ap
 
@@ -399,12 +412,16 @@ def main():
     amplipi = make_amplipi(args)
 
     # setup async wait construct for main routines
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_event_loop_policy().get_event_loop()
     try:
         # trigger the actual called action-function (async) and wait for it
         loop.run_until_complete(args.func(args, amplipi))
+    except (AssertionError, APIError) as e:
+        log.error(e)
+        exitcode = 1
     except Exception as e:
         log.exception(e)
+        print(e)
         exitcode = 1
     finally:
         loop.run_until_complete(amplipi.close())
