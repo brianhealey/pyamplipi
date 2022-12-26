@@ -14,9 +14,9 @@ from pydantic.fields import ModelField
 from tabulate import tabulate
 from textwrap import indent
 import validators
-from pyamplipi.models import Status, Info, Source, Zone, Group, Stream, Preset, Announcement
-from pyamplipi.amplipi import AmpliPi
-from pyamplipi.error import APIError
+from .models import Status, Info, Source, Zone, Group, Stream, Preset, Announcement
+from .amplipi import AmpliPi
+from .error import APIError
 
 
 # constants
