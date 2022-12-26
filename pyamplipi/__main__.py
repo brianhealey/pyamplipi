@@ -226,7 +226,7 @@ async def do_announce(args: Namespace, amplipi: AmpliPi):
         assert validators.url(input['media']), "media_url must be a valid URL"
         assert 0.0 <= input['vol_f'] <= 1.0, "vol_f must be in range 0.0..1.0"
 
-    log.debug(f"announce(input={args.input})")
+    log.debug(f"announce(input={args.input if args.input is not None else '«stdin»'})")
     announcement: Announcement = instantiate_model(Announcement, args.input, validate)
     await amplipi.announce(announcement)   # returns Status object which we ignore
 
