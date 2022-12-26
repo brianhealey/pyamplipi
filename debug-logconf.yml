@@ -1,0 +1,29 @@
+# new yaml format for python logging config
+# see https://docs.python.org/3/library/logging.config.html for description of dictConfig
+version: 1
+formatters:
+  base:
+    format: '%(asctime)-18s @%(name)-23s [%(levelname)-8s] %(message)s'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+handlers:
+  stderr:
+    class: logging.StreamHandler
+    level: DEBUG
+    formatter: base
+    stream: ext://sys.stderr
+  file:
+    class: logging.FileHandler
+    level: DEBUG
+    formatter: base
+    filename: pyamplipi.log
+    mode: 'w'  # in stead of 'a'
+loggers:
+  __main__:
+    level: DEBUG
+    propagate: yes
+  pyamplipi:
+    level: DEBUG
+    propagate: yes
+root:
+  level: DEBUG
+  handlers: [stderr, file]
