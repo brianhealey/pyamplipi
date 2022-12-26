@@ -117,10 +117,6 @@ class AmpliPi:
         response = await self._client.post(f'streams/{stream_id}', update.json())
         return Stream.parse_obj(response)
 
-    async def announce(self, announcement: Announcement) -> Status:
-        response = await self._client.post('announce', announcement.json())
-        return Status.parse_obj(response)
-
     async def get_presets(self) -> List[Preset]:
         response = await self._client.get('presets')
         return [Preset.parse_obj(preset) for preset in response['presets']]
@@ -128,6 +124,10 @@ class AmpliPi:
     async def get_preset(self, preset_id: int) -> Preset:
         response = await self._client.get(f'presets/{preset_id}')
         return Preset.parse_obj(response)
+
+    async def announce(self, announcement: Announcement) -> Status:
+        response = await self._client.post('announce', announcement.json())
+        return Status.parse_obj(response)
 
     async def close(self):
         await self._client.close()
