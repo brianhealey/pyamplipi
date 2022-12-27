@@ -169,8 +169,8 @@ class PresetUpdate(BaseModel):
 class Announcement(BaseModel):
     media: str
     vol: Optional[int]
-    vol_f: float
-    source_id: int
+    vol_f: Optional[float]
+    source_id: Optional[int]
     zones: Optional[List[int]]
     groups: Optional[List[int]]
 
