@@ -28,6 +28,10 @@ class AmpliPi:
         response = await self._client.get('')
         return Status.parse_obj(response)
 
+    async def load_config(self, config: Status) -> Status:
+        response = await self._client.post('load')
+        return Status.parse_obj(response)
+
     async def get_sources(self) -> List[Source]:
         response = await self._client.get('sources')
         return [Source.parse_obj(source) for source in response['sources']]

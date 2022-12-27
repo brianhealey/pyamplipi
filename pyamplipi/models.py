@@ -175,11 +175,20 @@ class Announcement(BaseModel):
     groups: Optional[List[int]]
 
 
+class FirmwareInfo(BaseModel):
+    version: Optional[str]
+    git_hash: Optional[str]
+    git_dirty: Optional[bool]
+
+
 class Info(BaseModel):
     config_file: str = 'Uknown'
     version: str = 'Unknown'
     mock_ctrl: bool = False
     mock_streams: bool = False
+    online: Optional[bool] = True
+    latest_release: Optional[str]
+    fw: Optional[List[FirmwareInfo]]
 
 
 class Status(BaseModel):
