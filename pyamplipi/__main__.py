@@ -20,8 +20,8 @@ from .error import APIError
 
 
 # constants
-log = logging.getLogger(__name__)      # central logging channel
-json_ser_kwargs = dict(indent=2)     # arguments to serialise the json
+log = logging.getLogger(__name__)                     # central logging channel
+json_ser_kwargs = dict(exclude_unset=True, indent=2)  # arguments to serialise the json
 
 
 # text formatters
@@ -82,6 +82,16 @@ def list_status(status: Status):
     list_presets(status.presets)
 
 
+# interactive confirm
+def interactive_confirm(msg: str = 'This is not without danger.'):
+    """ Asks interactively if the user really wants to proceed.
+    """
+    # reopen the tty to make sure the stdin read() until EOF has not closed it
+    sys.stdin = open("/dev/tty")  # TODO check how this behaves on windows?
+    answer = input(f'{em("Caution:")} {msg}. Are you sure [N/y]?').lower()
+    return answer[0] == 'y'
+
+
 # actual service-methods
 async def do_placeholder(args: Namespace, amplipi: AmpliPi):  # placeholder during dev - to be removed when completed
     log.warning(f"todo handle command args --> \n  args = {args}\n  ammplipi = {amplipi}")
@@ -102,7 +112,19 @@ async def do_status_get(args: Namespace, amplipi: AmpliPi):
     status: Status = await amplipi.get_status()
     print(status.json(**json_ser_kwargs))
 
-# async def do_status_set(args: Namespace, amplipi: AmpliPi):
+
+# TODO make this actually work --> currently results in error message about missing field:
+#      {"detail":[{"loc":["body"],"msg":"field required","type":"value_error.missing"}]}
+async def do_config_load(args: Namespace, amplipi: AmpliPi):
+    """ Sets Config json represenatation
+    """
+    log.debug(f"config.load(«stdin») forced = {args.force}")
+    # Be sure to consume stdin before entering interactive dialogue
+    new_config: Status = instantiate_model(Status)  # not using any --input and no validate()
+    # Make sure the user wants this
+    assert args.force or interactive_confirm("You are about to overwrite the configuration."), "Aborted"
+    status: Status = await amplipi.load_config(new_config)
+    print(status.json(**json_ser_kwargs))
 
 
 async def do_source_list(args: Namespace, amplipi: AmpliPi):
@@ -231,7 +253,7 @@ async def do_announce(args: Namespace, amplipi: AmpliPi):
     await amplipi.announce(announcement)   # returns Status object which we ignore
 
 
-def instantiate_model(model: BaseModel, input: dict, validate: Callable):
+def instantiate_model(model: BaseModel, input: dict = None, validate: Callable = None):
     """ Instatiates the passed BaseModel based on:
       (1) either the passed input dict (if not None) merged with env var defaults
       (2) a json representation read from stdin
@@ -291,11 +313,23 @@ class ParseDict(Action):
         setattr(namespace, self.dest, d)
 
 
+def add_force_argument(ap):
+    """ Adds the --force argument in a conistent way to commands that need explicite or interactive confirmation
+    """
+    ap.add_argument(
+        "--force", "-f",
+        action='store_true',
+        help="force the command to be executed without interaction.")
+
+
 def add_id_argument(ap, model):
-    """ Adds the input argument in a consistent way
+    """ Adds the --input argument in a consistent way
     """
     name = model.__name__.lower()
-    ap.add_argument(f"{name}id", action='store', type=int, metavar="ID", help="identifier of the {name}")
+    ap.add_argument(
+        f"{name}id",
+        action='store', type=int, metavar="ID",
+        help="identifier of the {name}")
 
 
 def add_input_argument(ap, model):
@@ -345,7 +379,7 @@ def get_arg_parser():
         metavar="SECONDS",
         type=int,
         action='store',
-        help='The timeout in seconds (int) to be applid in the client.',
+        help='The timeout in seconds (int) to be applied in the client.',
         default=os.getenv('AMPLIPI_TIMEOUT')
     )
     # todo should we consider -f --format json(default)|yml|pickle... other formats for the in/out?
@@ -357,7 +391,9 @@ def get_arg_parser():
     )
 
     # create the various topic branches
-    topic_status_ap = topics_subs.add_parser("status", aliases=['stat', 'state'], help="view/store the general status")
+    topic_status_ap = topics_subs.add_parser(
+        "status", aliases=['stat', 'state', 'conf', 'config'],
+        help="view/store the general status")
     topic_source_ap = topics_subs.add_parser("sources", aliases=['src', 'source'], help="configure the various input sources")
     topic_zone_ap = topics_subs.add_parser("zones", aliases=['zn', 'zone'], help="configure the available output zones")
     topic_group_ap = topics_subs.add_parser("groups", aliases=['grp', 'group'], help="manage the output groups")
@@ -373,8 +409,10 @@ def get_arg_parser():
     status_subs.add_parser('list', aliases=['ls'], help="list status overview").set_defaults(func=do_status_list)
     # -- status get
     status_subs.add_parser('get', help="dumps status json to stdout").set_defaults(func=do_status_get)
-    # -- status set
-    status_subs.add_parser('set', help="overwrites status json with input from stdin").set_defaults(func=do_placeholder)
+    # -- config load (~≃ status set)
+    load_config_ap = status_subs.add_parser('set', aliases=['load'], help="overwrites status json with input from stdin")
+    add_force_argument(load_config_ap)
+    load_config_ap.set_defaults(func=do_config_load)
 
     # details of the source handling branch
     source_subs = topic_source_ap.add_subparsers(**action_supbarser_kwargs)
@@ -497,6 +535,12 @@ def get_arg_parser():
     # details of the announce handling branch
     add_input_argument(topic_announce_ap, Announcement)
     topic_announce_ap.set_defaults(func=do_announce)
+
+    # TODO consider interactive shell mode pyamplipi shell
+    #  -- creates a single amplipi client to reuse
+    #  -- displays a prompt 'ampsh >' for interactive use
+    #  -- reads stdin line by line, splits and passes through argparse
+    #  -- note will need some trick to handle file io rather then stdin/stdout
 
     return parent_ap
 

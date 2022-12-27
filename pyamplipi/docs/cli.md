@@ -114,8 +114,18 @@ The source code includes an example `debug-logconf.yml` for convenience.
 
 ### Case 1 -- Making a status backup
 
-### Case 2 -- Restoring a status backup
+```sh
+$ pyamplipi status get > $(date --iso)-amplipi-status.json
+```
 
-### Case 3 -- Playing an announcement
+### Case 2 -- Restoring  the latest status backup
 
-### Case 4 -- sed/awk away to increase the vol_f of a zone with 0.1
+ ```sh
+ $ pyamplipi config load  < $(ls  -t1 *amplipi-status.json | head -1)  
+```
+
+Note:
+* `config load` is actually an alias for `status set`
+* `ls -t` sorts files newest to oldest, `ls -1` prints one per line, `| head -1` keeps the newest, and the construct `$(cmd)` puts the result of that into the line - effectively using the newest file matching the pattern as input
+
+### Case 3 -- sed/awk away to increase the vol_f of a zone with 0.1
