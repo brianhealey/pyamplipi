@@ -1,0 +1,4 @@
+#! /usr/bin/env -S pyamplipi sh
+
+grp ls
+src ls

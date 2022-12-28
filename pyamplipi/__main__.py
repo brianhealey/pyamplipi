@@ -7,10 +7,12 @@ import json
 import yaml
 import datetime
 from dotenv import load_dotenv
-from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, Namespace, Action
+from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, Namespace, Action, ArgumentError
 from typing import List, Callable
-from pydantic import BaseModel
 from pydantic.fields import ModelField
+from pydantic.main import ModelMetaclass
+from aiohttp import TCPConnector, ClientSession
+from aiohttp.client_exceptions import ServerDisconnectedError
 from tabulate import tabulate
 from textwrap import indent
 import validators
@@ -93,11 +95,13 @@ def interactive_confirm(msg: str = 'This is not without danger.'):
 
 
 # actual service-methods
-async def do_placeholder(args: Namespace, amplipi: AmpliPi):  # placeholder during dev - to be removed when completed
+async def do_placeholder(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ placeholder function during dev - to be removed when completed
+    """
     log.warning(f"todo handle command args --> \n  args = {args}\n  ammplipi = {amplipi}")
 
 
-async def do_status_list(args: Namespace, amplipi: AmpliPi):
+async def do_status_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Prints out comprehensive status information
     """
     log.debug("status.list")
@@ -105,29 +109,48 @@ async def do_status_list(args: Namespace, amplipi: AmpliPi):
     list_status(status)
 
 
-async def do_status_get(args: Namespace, amplipi: AmpliPi):
+def read_in(infile: str = None) -> str:
+    """ Read input from infile (if not None) else from stdin
+    """
+    json_str: str = None
+    if infile is None:
+        json_str = sys.stdin.read()
+    else:
+        with open(infile, 'r') as ins:
+            json_str = ins.read()
+    return json_str
+
+
+def write_out(json_str: str, outfile: str = None):
+    """ Write output to outfile (if not None) els to stdout
+    """
+    if outfile is None:
+        print(json_str)
+    else:
+        with open(outfile, 'w') as out:
+            out.write(json_str)
+
+
+async def do_status_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Gets Status json represenatation
     """
     log.debug("status.get")
     status: Status = await amplipi.get_status()
-    print(status.json(**json_ser_kwargs))
+    write_out(status.json(**json_ser_kwargs), args.outfile)
 
 
-# TODO make this actually work --> currently results in error message about missing field:
-#      {"detail":[{"loc":["body"],"msg":"field required","type":"value_error.missing"}]}
-async def do_config_load(args: Namespace, amplipi: AmpliPi):
+async def do_config_load(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Sets Config json represenatation
     """
     log.debug(f"config.load(«stdin») forced = {args.force}")
     # Be sure to consume stdin before entering interactive dialogue
-    new_config: Status = instantiate_model(Status)  # not using any --input and no validate()
+    new_config: Status = instantiate_model(Status, args.infile)  # not using any --input and no validate()
     # Make sure the user wants this
     assert args.force or interactive_confirm("You are about to overwrite the configuration."), "Aborted"
-    status: Status = await amplipi.load_config(new_config)
-    print(status.json(**json_ser_kwargs))
+    await amplipi.load_config(new_config)  # ignoring status return value
 
 
-async def do_source_list(args: Namespace, amplipi: AmpliPi):
+async def do_source_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Prints out comprehensive listing of sources
     """
     log.debug("source.list")
@@ -135,18 +158,18 @@ async def do_source_list(args: Namespace, amplipi: AmpliPi):
     list_sources(sources)
 
 
-async def do_source_get(args: Namespace, amplipi: AmpliPi):
+async def do_source_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Gets Sources json represenatation by source_id
     """
     log.debug(f"source.get({args.sourceid})")
     assert 0 <= args.sourceid <= 3, "source id must be in range 0..3"
     source: Source = await amplipi.get_source(args.sourceid)
-    print(source.json(**json_ser_kwargs))
+    write_out(source.json(**json_ser_kwargs), args.outfile)
 
-# async def do_source_set(args: Namespace, amplipi: AmpliPi):
+# async def do_source_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 
 
-async def do_zone_list(args: Namespace, amplipi: AmpliPi):
+async def do_zone_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Prints out comprehensive listing of zones
     """
     log.debug("zone.list")
@@ -154,18 +177,18 @@ async def do_zone_list(args: Namespace, amplipi: AmpliPi):
     list_zones(zones)
 
 
-async def do_zone_get(args: Namespace, amplipi: AmpliPi):
+async def do_zone_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Gets Zone json represenatation by zone_id
     """
     log.debug(f"zone.get({args.zoneid})")
     assert 0 <= args.zoneid <= 35, "zone id must be in range 0..35"
     zone: Zone = await amplipi.get_zone(args.zoneid)
-    print(zone.json(**json_ser_kwargs))
+    write_out(zone.json(**json_ser_kwargs), args.outfile)
 
-# async def do_zone_set(args: Namespace, amplipi: AmpliPi):
+# async def do_zone_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 
 
-async def do_group_list(args: Namespace, amplipi: AmpliPi):
+async def do_group_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Prints out comprehensive listing of groups
     """
     log.debug("group.list")
@@ -173,21 +196,20 @@ async def do_group_list(args: Namespace, amplipi: AmpliPi):
     list_groups(groups)
 
 
-async def do_group_get(args: Namespace, amplipi: AmpliPi):
+async def do_group_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Gets Group json represenatation by group_id
     """
     log.debug(f"group.get({args.groupid})")
     assert 0 <= args.groupid, "group id must be > 0"
     group: Group = await amplipi.get_group(args.groupid)
-    print(group.json(**json_ser_kwargs))
+    write_out(group.json(**json_ser_kwargs), args.outfile)
 
-# async def do_group_set(args: Namespace, amplipi: AmpliPi):
-# async def do_group_load(args: Namespace, amplipi: AmpliPi):
-# async def do_group_new(args: Namespace, amplipi: AmpliPi):
-# async def do_group_del(args: Namespace, amplipi: AmpliPi):
+# async def do_group_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_group_new(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_group_del(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 
 
-async def do_stream_list(args: Namespace, amplipi: AmpliPi):
+async def do_stream_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Prints out comprehensive listing of streams
     """
     log.debug("stream.list")
@@ -195,26 +217,26 @@ async def do_stream_list(args: Namespace, amplipi: AmpliPi):
     list_streams(streams)
 
 
-async def do_stream_get(args: Namespace, amplipi: AmpliPi):
+async def do_stream_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Gets Stream json represenatation by stream_id
     """
     log.debug(f"stream.get({args.streamid})")
     assert 0 <= args.streamid, "stream id must be > 0"
     stream: Stream = await amplipi.get_stream(args.streamid)
-    print(stream.json(**json_ser_kwargs))
+    write_out(stream.json(**json_ser_kwargs), args.outfile)
 
 
-# async def do_stream_set(args: Namespace, amplipi: AmpliPi):
-# async def do_stream_new(args: Namespace, amplipi: AmpliPi):
-# async def do_stream_del(args: Namespace, amplipi: AmpliPi):
-# async def do_stream_play(args: Namespace, amplipi: AmpliPi):
-# async def do_stream_pause(args: Namespace, amplipi: AmpliPi):
-# async def do_stream_stop(args: Namespace, amplipi: AmpliPi):
-# async def do_stream_next(args: Namespace, amplipi: AmpliPi):
-# async def do_stream_prev(args: Namespace, amplipi: AmpliPI):
+# async def do_stream_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_stream_new(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_stream_del(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_stream_play(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_stream_pause(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_stream_stop(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_stream_next(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_stream_prev(args: Namespace, amplipi: AmpliPI, shell: bool, **kwargs):
 
 
-async def do_preset_list(args: Namespace, amplipi: AmpliPi):
+async def do_preset_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Prints out comprehensive listing of presets
     """
     log.debug("preset.list")
@@ -222,67 +244,140 @@ async def do_preset_list(args: Namespace, amplipi: AmpliPi):
     list_presets(preset)
 
 
-async def do_preset_get(args: Namespace, amplipi: AmpliPi):
+async def do_preset_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Gets Preset json representation by preset_id
     """
     log.debug(f"preset.get({args.presetid})")
     assert 0 <= args.presetid, "preset id must be > 0"
     preset: Preset = await amplipi.get_preset(args.presetid)
-    print(preset.json(**json_ser_kwargs))
+    write_out(preset.json(**json_ser_kwargs), args.outfile)
 
 
-# async def do_preset_set(args: Namespace, amplipi: AmpliPi):
-# async def do_preset_new(args: Namespace, amplipi: AmpliPi):
-# async def do_preset_del(args: Namespace, amplipi: AmpliPi):
+# async def do_preset_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_preset_load(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_preset_new(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_preset_del(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 
 
-async def do_announce(args: Namespace, amplipi: AmpliPi):
+async def do_announce(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Plays announcement
     """
     def validate(input: dict):
         log.debug(f"validating announcement kwargs: {input}")
-        # TODO see github-issue #7 -- since v0.1.8 less variables are required
-        # source_id=3 and vol_f should become optional
-        input['vol_f'] = input.get('vol_f', 0.5)
-        input['source_id'] = input.get('source_id', 3)
         assert validators.url(input['media']), "media_url must be a valid URL"
-        assert 0.0 <= input['vol_f'] <= 1.0, "vol_f must be in range 0.0..1.0"
+        assert 'vol_f' not in input or 0.0 <= input['vol_f'] <= 1.0, "vol_f must be in range 0.0..1.0"
 
     log.debug(f"announce(input={args.input if args.input is not None else '«stdin»'})")
-    announcement: Announcement = instantiate_model(Announcement, args.input, validate)
+    announcement: Announcement = instantiate_model(Announcement, args.infile, args.input, validate)
+    # TODO
+    #   after PR #14 is merged - we can use the per-call timeout feature to override timeout in this call
+    #   Note: only makes sense in shell mode as only then the amplipi object gets reused
     await amplipi.announce(announcement)   # returns Status object which we ignore
 
 
-def instantiate_model(model: BaseModel, input: dict = None, validate: Callable = None):
+async def do_shell(args: Namespace, amplipi: AmpliPi, shell: bool, argsparser: ArgumentParser, **kwargs):
+    """ Evaluates entering interactive mode
+    """
+    if shell is True:
+        print("Entering a nested shell is not supported - command ignored.")
+        return
+    if args.script is not None:
+        await script_shell(args.script, amplipi, argsparser)
+        return
+    # else
+    await interactive_shell(amplipi, argsparser)
+
+
+async def script_shell(script_file: str, amplipi: AmpliPi, argsparser: ArgumentParser):
+    """ Executes the command-lines in the script_file
+    """
+    with open(script_file, 'r') as script:
+        while True:
+            cmdline: str = script.readline()
+            if not cmdline:
+                log.debug("EOF script to shell")
+                break
+            # else
+            await shell_cmd_exec(cmdline.strip(), amplipi, argsparser)
+
+
+async def interactive_shell(amplipi: AmpliPi, argsparser: ArgumentParser):
+    """ Enters interactive mode to execute multiple consecutive commands while reusing the amplipi client
+    """
+    assert argsparser is not None, "shell requires an actual argsparser"
+    print("Entering shell mode - Use «ctrl» + «d» to finish.")
+    prompt = "ampsh > "
+    while True:                # read input
+        cmdline: str = None
+        try:
+            cmdline = input(prompt)
+        except EOFError:       # triggered by ctrl-d
+            log.debug("EOF shell")
+            print()            # just add a newline
+            break              # and break
+
+        if cmdline == 'exit':  # allow this alternative to ctrl-d
+            log.debug("exit shell")
+            break              # so do as requested
+        # else
+        await shell_cmd_exec(cmdline, amplipi, argsparser)
+    log.debug("ending interactive shell")
+
+
+async def shell_cmd_exec(cmdline: str, amplipi: AmpliPi, argsparser: ArgumentParser):
+    """ Executes one line of pyamplipi-shell commands
+    """
+    if len(cmdline) == 0 or cmdline[0] == '#':
+        return    # ignore empty lines or comment lines
+    try:  # to actually call the requested function
+        cmdargs = argsparser.parse_args(cmdline.split())
+        log.debug(f"cmdargs == {cmdargs}")
+        if cmdargs.func is not None and isinstance(cmdargs.func, Callable):
+            await cmdargs.func(cmdargs, amplipi, shell=True)
+            return
+    except ArgumentError as e:
+        print(e)
+    except (AssertionError, APIError) as e:
+        log.error(e)
+    except ServerDisconnectedError as e:
+        log.exception(e)
+        print("server disconnected - pls retry")
+    except Exception as e:
+        log.exception(e)
+        print(e)
+
+
+def instantiate_model(model_cls: ModelMetaclass, infile: str, input: dict = None, validate: Callable = None):
     """ Instatiates the passed BaseModel based on:
       (1) either the passed input dict (if not None) merged with env var defaults
-      (2) a json representation read from stdin
+      (2) either a json representation read from stdin
     """
     if input is not None:
-        input = merge_model_kwargs(model, input)
+        input = merge_model_kwargs(model_cls, input)
         if validate is not None:
             validate(input)
-        return model(**input)
+        return model_cls(**input)
     # else read the object from stdin (json)
-    return model.parse_obj(json.loads(sys.stdin.read()))
+    return model_cls.parse_obj(json.loads(read_in(infile)))
 
 
-def merge_model_kwargs(model: BaseModel, input: dict):
+def merge_model_kwargs(model_cls: ModelMetaclass, input: dict):
     """ Builds the kwargs needed to construct the passed BaseModel by merging the passed input dict
     with possible available environment variables with key following this pattern:
         "AMPLIPI_" + «name of BaseModel» + "_" + «name of field in BaseModel» (in all caps)
     """
     def envvar(name):
-        envkey: str = f"AMPLIPI_{model.__name__}_{name}".upper()
+        envkey: str = f"AMPLIPI_{model_cls.__name__}_{name}".upper()
         return os.getenv(envkey)
     kwargs = dict()
-    for name, modelfield in model.__fields__.items():
+    for name, modelfield in model_cls.__fields__.items():
         value_str: str = input.get(name, envvar(name))
         if value_str is not None and type(value_str) == str and len(value_str) > 0:
             kwargs[name] = parse_valuestr(value_str, modelfield)
     return kwargs
 
 
+# helper functions for the arguments parsing
 def parse_valuestr(val_str: str, modelfield: ModelField):
     """ Uses the pydantic defined Modelfield to correctly parse CLI passed string-values to typed values
     Supports simple types and lists of them
@@ -313,7 +408,7 @@ class ParseDict(Action):
         setattr(namespace, self.dest, d)
 
 
-def add_force_argument(ap):
+def add_force_argument(ap: ArgumentParser):
     """ Adds the --force argument in a conistent way to commands that need explicite or interactive confirmation
     """
     ap.add_argument(
@@ -322,41 +417,65 @@ def add_force_argument(ap):
         help="force the command to be executed without interaction.")
 
 
-def add_id_argument(ap, model):
+def add_id_argument(ap: ArgumentParser, model_cls: ModelMetaclass):
     """ Adds the --input argument in a consistent way
     """
-    name = model.__name__.lower()
+    name = model_cls.__name__.lower()
     ap.add_argument(
         f"{name}id",
         action='store', type=int, metavar="ID",
         help="identifier of the {name}")
 
 
-def add_input_argument(ap, model):
-    """ Adds the --input -i argument in a consistent way
-    The argument takes key-value pairs to construct models rather then provide those in json via stdin
+def add_input_arguments(ap: ArgumentParser, model_cls: ModelMetaclass):
+    """ Adds the --input -i and --infile -I  argument in a consistent way
+    The -i argument takes key-value pairs to construct models rather then provide those in json via stdin
+    The -I argument specifies an input file to use in stead of stdin
     """
     ap.add_argument(
         '--input', '-i',
+        action=ParseDict,
         metavar="KEY=VALUE",
         nargs="*",
-        help=f"Set any of the fields ({', '.join(model.__fields__.keys())}) to the {model.__name__} object inline."
+        help=f"Set any of the fields ({', '.join(model_cls.__fields__.keys())}) to the {model_cls.__name__} object inline."
         " (do not put spaces before or after the = sign). "
         " Use double quotes to let values have spaces."
         ' foo="this is a sentence".'
         " Using this avoids passing the json representation via stdin.",
-        action=ParseDict,
+    )
+    ap.add_argument(
+        '--infile', '-I',
+        action='store',
+        metavar="FILE",
+        help="provide the file to be used as input source in stead of stdin.",
     )
 
 
-def get_arg_parser():
+def add_output_arguments(ap: ArgumentParser):
+    """ Adds the --outile -O argument in a consistent way
+    The argument specifies the output file to use in stead of stdout
+    """
+    ap.add_argument(
+        '--outfile', '-O',
+        action='store',
+        metavar="FILE",
+        help="provide the file to be used as output target in stead of stdout.",
+    )
+
+
+def get_arg_parser() -> ArgumentParser:
     """ Defines the arguments to this module's __main__ cli script
     by using Python's [argparse](https://docs.python.org/3/library/argparse.html)
     """
+    # TODO for better handling inside shell
+    #      pass  exit_on_error=False + handle exceptions
+    #      per https://stackoverflow.com/questions/5943249/python-argparse-and-controlling-overriding-the-exit-status-code
+    #      and https://docs.python.org/3/library/argparse.html#exit-on-error
     parent_ap = ArgumentParser(
         prog='pyamplipi',
         description='CLI for interactive amplipi /api calls',
         formatter_class=ArgumentDefaultsHelpFormatter,
+        exit_on_error=False,
     )
 
     parent_ap.add_argument(
@@ -393,13 +512,36 @@ def get_arg_parser():
     # create the various topic branches
     topic_status_ap = topics_subs.add_parser(
         "status", aliases=['stat', 'state', 'conf', 'config'],
+        exit_on_error=False,
         help="view/store the general status")
-    topic_source_ap = topics_subs.add_parser("sources", aliases=['src', 'source'], help="configure the various input sources")
-    topic_zone_ap = topics_subs.add_parser("zones", aliases=['zn', 'zone'], help="configure the available output zones")
-    topic_group_ap = topics_subs.add_parser("groups", aliases=['grp', 'group'], help="manage the output groups")
-    topic_stream_ap = topics_subs.add_parser("streams", aliases=['str', 'stream'], help="manage the available streams")
-    topic_announce_ap = topics_subs.add_parser("announce", aliases=['ann', 'play'], help="play announcements")
-    topic_preset_ap = topics_subs.add_parser("presets", aliases=['pr', 'pre', 'preset'], help="manage the presets")
+    topic_source_ap = topics_subs.add_parser(
+        "sources", aliases=['src', 'source'],
+        exit_on_error=False,
+        help="configure the various input sources")
+    topic_zone_ap = topics_subs.add_parser(
+        "zones", aliases=['zn', 'zone'],
+        exit_on_error=False,
+        help="configure the available output zones")
+    topic_group_ap = topics_subs.add_parser(
+        "groups", aliases=['grp', 'group'],
+        exit_on_error=False,
+        help="manage the output groups")
+    topic_stream_ap = topics_subs.add_parser(
+        "streams", aliases=['str', 'stream'],
+        exit_on_error=False,
+        help="manage the available streams")
+    topic_announce_ap = topics_subs.add_parser(
+        "announce", aliases=['ann', 'play'],
+        exit_on_error=False,
+        help="play announcements")
+    topic_preset_ap = topics_subs.add_parser(
+        "presets", aliases=['pr', 'pre', 'preset'],
+        exit_on_error=False,
+        help="manage the presets")
+    topic_shell_ap = topics_subs.add_parser(
+        "shell", aliases=['sh'],
+        exit_on_error=False,
+        help="enter into interactive shell mode")
 
     action_supbarser_kwargs = dict(title='actions to perform', required=True, metavar="ACTION",)
 
@@ -408,10 +550,13 @@ def get_arg_parser():
     # -- status list
     status_subs.add_parser('list', aliases=['ls'], help="list status overview").set_defaults(func=do_status_list)
     # -- status get
-    status_subs.add_parser('get', help="dumps status json to stdout").set_defaults(func=do_status_get)
+    get_status_ap = status_subs.add_parser('get', help="dumps status json to stdout")
+    add_output_arguments(get_status_ap)
+    get_status_ap.set_defaults(func=do_status_get)
     # -- config load (~≃ status set)
     load_config_ap = status_subs.add_parser('set', aliases=['load'], help="overwrites status json with input from stdin")
     add_force_argument(load_config_ap)
+    add_input_arguments(load_config_ap, Status)
     load_config_ap.set_defaults(func=do_config_load)
 
     # details of the source handling branch
@@ -421,10 +566,12 @@ def get_arg_parser():
     # -- source get
     get_source_ap = source_subs.add_parser('get', help="dumps source configuration json to stdout")
     add_id_argument(get_source_ap, Source)
+    add_output_arguments(get_source_ap)
     get_source_ap.set_defaults(func=do_source_get)
     # -- source set
     set_source_ap = source_subs.add_parser('set', help="overwrites source configuration with json input from stdin")
     add_id_argument(set_source_ap, Source)
+    add_input_arguments(set_source_ap, Source)
     set_source_ap.set_defaults(func=do_placeholder)
 
     # details of the zone handling branch
@@ -434,10 +581,12 @@ def get_arg_parser():
     # -- zone get
     get_zone_ap = zone_subs.add_parser('get', help="dumps zone configuration json to stdout")
     add_id_argument(get_zone_ap, Zone)
+    add_output_arguments(get_zone_ap)
     get_zone_ap.set_defaults(func=do_zone_get)
     # -- zone set
     set_zone_ap = zone_subs.add_parser('set', help="overwrites zone configuration with json input from stdin")
     add_id_argument(set_zone_ap, Zone)
+    add_input_arguments(set_zone_ap, Zone)
     set_zone_ap.set_defaults(func=do_placeholder)
 
     # details of the group handling branch
@@ -447,20 +596,20 @@ def get_arg_parser():
     # -- group get
     get_group_ap = group_subs.add_parser('get', help="dumps group configuration json to stdout")
     add_id_argument(get_group_ap, Group)
+    add_output_arguments(get_group_ap)
     get_group_ap.set_defaults(func=do_group_get)
     # -- group set
     set_group_ap = group_subs.add_parser('set', help="overwrites group configuration with json input from stdin")
     add_id_argument(set_group_ap, Group)
+    add_input_arguments(set_group_ap, Group)
     set_group_ap.set_defaults(func=do_placeholder)
-    # -- group load
-    load_group_ap = group_subs.add_parser('load', help="overwrites group configuration with json input from stdin")
-    add_id_argument(load_group_ap, Group)
-    load_group_ap.set_defaults(func=do_placeholder)
     # -- group new
-    group_subs.add_parser(
+    new_group_ap = group_subs.add_parser(
             'new', aliases=['make', 'create'],
             help="create a new group based on the json input from stdin"
-        ).set_defaults(func=do_placeholder)
+        )
+    add_input_arguments(new_group_ap, Group)
+    new_group_ap.set_defaults(func=do_placeholder)
     # -- group del
     del_group_ap = group_subs.add_parser('delete', aliases=['del', 'rm'], help="deletes the specified group")
     add_id_argument(del_group_ap, Group)
@@ -473,16 +622,20 @@ def get_arg_parser():
     # -- stream get
     get_stream_ap = stream_subs.add_parser('get', help="dumps stream configuration json to stdout")
     add_id_argument(get_stream_ap, Stream)
+    add_output_arguments(get_stream_ap)
     get_stream_ap.set_defaults(func=do_stream_get)
     # -- stream set
     set_stream_ap = stream_subs.add_parser('set', help="overwrites stream configuration with json input from stdin")
     add_id_argument(set_stream_ap, Stream)
+    add_input_arguments(set_stream_ap, Stream)
     set_stream_ap.set_defaults(func=do_placeholder)
     # -- stream new
-    stream_subs.add_parser(
+    new_stream_ap = stream_subs.add_parser(
             'new', aliases=['make', 'create'],
             help="create a new stream based on the json input from stdin"
-        ).set_defaults(func=do_placeholder)
+        )
+    add_input_arguments(new_stream_ap, Stream)
+    new_stream_ap.set_defaults(func=do_placeholder)
     # -- stream del
     del_stream_ap = stream_subs.add_parser('delete', aliases=['del', 'rm'], help="deletes the specified stream")
     add_id_argument(del_stream_ap, Stream)
@@ -517,34 +670,37 @@ def get_arg_parser():
     # -- preset get
     get_preset_ap = preset_subs.add_parser('get', help="dumps preset configuration json to stdout")
     add_id_argument(get_preset_ap, Preset)
+    add_output_arguments(get_preset_ap)
     get_preset_ap.set_defaults(func=do_preset_get)
     # -- preset set
     set_preset_ap = preset_subs.add_parser('set', help="overwrites preset configuration with json input from stdin")
     add_id_argument(set_preset_ap, Preset)
+    add_input_arguments(set_preset_ap, Preset)
     set_preset_ap.set_defaults(func=do_placeholder)
     # -- preset new
-    preset_subs.add_parser(
+    new_preset_ap = preset_subs.add_parser(
             'new', aliases=['make', 'create'],
             help="create a new preset based on the json input from stdin"
-        ).set_defaults(func=do_placeholder)
+        )
+    add_input_arguments(new_preset_ap, Preset)
+    new_preset_ap.set_defaults(func=do_placeholder)
     # -- preset del
     del_preset_ap = preset_subs.add_parser('delete', aliases=['del', 'rm'], help="deletes the specified preset")
     add_id_argument(del_preset_ap, Preset)
     del_preset_ap.set_defaults(func=do_placeholder)
 
     # details of the announce handling branch
-    add_input_argument(topic_announce_ap, Announcement)
+    add_input_arguments(topic_announce_ap, Announcement)
     topic_announce_ap.set_defaults(func=do_announce)
 
-    # TODO consider interactive shell mode pyamplipi shell
-    #  -- creates a single amplipi client to reuse
-    #  -- displays a prompt 'ampsh >' for interactive use
-    #  -- reads stdin line by line, splits and passes through argparse
-    #  -- note will need some trick to handle file io rather then stdin/stdout
+    # details of the shell branch
+    topic_shell_ap.add_argument("script", action='store', nargs='?', help="the script-file to be interpreted")
+    topic_shell_ap.set_defaults(func=do_shell)
 
     return parent_ap
 
 
+# helper functions for the logging config
 def yaml_load_file(file):
     """ Loads a yaml based config file
     """
@@ -571,19 +727,32 @@ def enable_logging(logconf=None):
     log.info(f"Logging enabled according to config in {logconf}")
 
 
+# helper function to instantiate the client
 def make_amplipi(args: Namespace) -> AmpliPi:
     """ Constructs the amplipi client
     """
-    endpoint = args.amplipi
-    timeout = args.timeout
-    return AmpliPi(endpoint, timeout=timeout)
+    endpoint: str = args.amplipi
+    timeout: int = args.timeout
+    # in shell modus we got frequent server-disconnected-errors - injecting this custom session avoids that
+    connector: TCPConnector = TCPConnector(force_close=True)
+    http_session: ClientSession = ClientSession(connector=connector)
+    return AmpliPi(endpoint, timeout=timeout, http_session=http_session)
 
 
+# main script entrypoint
 def main():
     exitcode = 0  # assuming all will be well
     load_dotenv()
     ap = get_arg_parser()
-    args = ap.parse_args()
+    args: Namespace = None
+    try:
+        args = ap.parse_args()
+    except ArgumentError as e:  # manual error handling as per https://docs.python.org/3/library/argparse.html#exit-on-error
+        ap.print_help()
+        log.error(e)
+        log.debug("exit(1) due to bad arguments on cli")
+        sys.exit(1)
+
     enable_logging(logconf=args.logconf)
     amplipi = make_amplipi(args)
 
@@ -591,7 +760,7 @@ def main():
     loop = asyncio.get_event_loop_policy().get_event_loop()
     try:
         # trigger the actual called action-function (async) and wait for it
-        loop.run_until_complete(args.func(args, amplipi))
+        loop.run_until_complete(args.func(args, amplipi, shell=False, argsparser=ap))
     except (AssertionError, APIError) as e:
         log.error(e)
         exitcode = 1
@@ -603,6 +772,7 @@ def main():
         loop.run_until_complete(amplipi.close())
         loop.run_until_complete(loop.shutdown_asyncgens())
         loop.close()
+        log.debug(f"exit({exitcode})")
         sys.exit(exitcode)
 
 

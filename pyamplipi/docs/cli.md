@@ -44,6 +44,8 @@ The `get` `COMMAND` generally will produce a json formatted output representatio
 
 This allows to pipe the output to json handling tools (like `jq`) or simply redirect the output to a file using `> output-here.json`
 
+Sending the output to a file can also be done by providing a `-O FILE` or `--outfile FILE` - this is mainly useful in shell-modus (see further)
+
 
 ## Reading Input 
 
@@ -65,6 +67,8 @@ $ cat /tmp/my-announce.json | pyamplipi -a http://amplipi.local/api/ -t 30 ann
 $ pyamplipi -a http://amplipi.local/api/ -t 30 ann < /tmp/my-announce.json
 ```
 
+Reading the input from a file can also be done by providing a `-I FILE` or `--infile FILE` - this is mainly useful in shell-modus (see further)
+
 ### (2) Input from CLI `--input [key=value]`
 
 Alternatively the values can also be provided on the command line as key-value-pairs.
@@ -78,6 +82,7 @@ $ pyamplipi -a http://amplipi.local/api/ -t 30 ann -i media="https://www.nasa.go
 **Note:** This second technique is only available for those TOPIC/COMMAND combinations where the input is simple enough to be provided using these key-value pairs.
 
 One can use the `--help` to learn about the available keys for any specific TOPIC/COMMAND
+
 
 ```sh
 $ pyamplipi ann --help
@@ -100,6 +105,52 @@ AMPLIPI_ANNOUNCEMENT_VOL_F=0.65'  > .env
 $ pyamplipi ann -i 
 ```
 
+**Note:** Even when all values are provided via the .env one still needs to use the `-i` or `--input` to indicate that «stdin» is not to be read for json input.
+
+
+## interactive shell modus
+
+The CLI supports an interactive shell modus that
+* simply uses the same commandline syntax (but allows to ommit the repeated `pyamplipi` at the start)
+* reuses the same amplipi client instance
+
+Getting into the shell is done via
+```sh
+$ pyamplipi shell
+ampsh > 
+```
+
+But you can also put your comand into a mini-script and have them executed:
+
+Nifty side effects of this approach are:
+
+### pipe commands to shell:
+
+```sh 
+echo -e "grp ls\nsrc ls"| pyamplipi sh
+```
+
+### create executable shebang scripts:
+
+Save the following as a new file `my.ampsh`
+```
+#! /usr/bin/env -S pyamplipi sh
+
+grp ls
+src ls
+```
+
+Make it executable, and give it a spin
+```sh
+$ chmod +x my.ampsh
+$ ./my.ampsh
+```
+
+which is in fact similar to passing it to the shell:
+```sh 
+$ pyamplipi sh ./my.ampsh
+```
+
 ## Configure Logging
 
 The CLI script uses python logging. It allows to provide an external yml configuration via `-l «config.yml»` that controls where various levels of logging need to be sent to.
@@ -109,8 +160,6 @@ The source code includes an example `debug-logconf.yml` for convenience.
 **Tip:** Please make sure this config directs any output either to designated files, or to stderr so not to conflict with the json output (on stdout).
 
 ## Typical use cases
-
--- TODO provide some practical use cases
 
 ### Case 1 -- Making a status backup
 
@@ -129,3 +178,5 @@ Note:
 * `ls -t` sorts files newest to oldest, `ls -1` prints one per line, `| head -1` keeps the newest, and the construct `$(cmd)` puts the result of that into the line - effectively using the newest file matching the pattern as input
 
 ### Case 3 -- sed/awk away to increase the vol_f of a zone with 0.1
+
+-- todo work up to this case...
