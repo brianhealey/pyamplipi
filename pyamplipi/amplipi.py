@@ -130,7 +130,7 @@ class AmpliPi:
         return Preset.parse_obj(response)
 
     async def announce(self, announcement: Announcement) -> Status:
-        response = await self._client.post('announce', announcement.json())
+        response = await self._client.post('announce', announcement.json(exclude_unset=True))
         return Status.parse_obj(response)
 
     async def close(self):
