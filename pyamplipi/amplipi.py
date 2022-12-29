@@ -38,6 +38,10 @@ class AmpliPi:
         response = await self._client.post('factory_reset')
         return Status.parse_obj(response)
 
+    async def system_reset(self) -> Status:
+        response = await self._client.post('reset')
+        return Status.parse_obj(response)
+
     async def get_sources(self) -> List[Source]:
         response = await self._client.get('sources')
         return [Source.parse_obj(source) for source in response['sources']]
