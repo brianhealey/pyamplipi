@@ -4,7 +4,7 @@ from aiohttp import ClientSession
 
 from pyamplipi.client import Client
 from pyamplipi.models import Group, Stream, SourceUpdate, MultiZoneUpdate, ZoneUpdate, \
-    GroupUpdate, StreamUpdate, Announcement, Status, Config, Source, Zone, Preset
+    GroupUpdate, StreamUpdate, Announcement, Status, Config, Info, Source, Zone, Preset
 
 json_ser_kwargs = dict(exclude_unset=True)
 
@@ -49,6 +49,10 @@ class AmpliPi:
     async def system_shutdown(self) -> Status:
         response = await self._client.post('shutdown')
         return Status.parse_obj(response)
+
+    async def get_info(self) -> Info:
+        response = await self._client.get('info')
+        return Info.parse_obj(response)
 
     async def get_sources(self) -> List[Source]:
         response = await self._client.get('sources')

@@ -34,9 +34,13 @@ def table(d, h) -> str: return indent(tabulate(d, h, tablefmt='rounded_outline')
 # list methods dumping comprehensive output to stdout
 def list_info(info: Info):
     print(em("Info:"))
-    headers = ["Filename", "Version", "Mock Controls", "Mock Streams"]
+    headers = ["Filename", "Version", "Mock Controls", "Mock Streams", "Online", "Firmware(s)"]
     data = list()
-    data.append([info.config_file, info.version, info.mock_ctrl, info.mock_streams])
+    data.append([
+        info.config_file, info.version, 
+        info.mock_ctrl, info.mock_streams, info.online, 
+        "/".join([f"{fw.version}{'*' if fw.git_dirty else ''}" for fw in info.fw]),
+    ])
     print(table(data, headers))
 
 
@@ -135,7 +139,7 @@ async def do_status_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwarg
 async def do_status_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Gets Status json represenatation
     """
-    log.debug("status.get")
+    log.debug("status.get()")
     status: Status = await amplipi.get_status()
     write_out(status.json(**json_ser_kwargs), args.outfile)
 
@@ -192,7 +196,13 @@ async def do_system_shutdown(args: Namespace, amplipi: AmpliPi, shell: bool, **k
     await amplipi.system_shutdown()  # ignoring status return value
 
 
-# async def do_info_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+async def do_info_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Gets Status-Info json represenatation
+    """
+    log.debug("status.info()")
+    info: Info = await amplipi.get_info()
+    write_out(info.json(**json_ser_kwargs), args.outfile)
+
 
 async def do_source_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Prints out comprehensive listing of sources
@@ -624,6 +634,10 @@ def get_arg_parser() -> ArgumentParser:
     system_shutdown_ap = status_subs.add_parser('shutdown', aliases=['shut', 'stop'], help="shuts down the system OS")
     add_force_argument(system_shutdown_ap)
     system_shutdown_ap.set_defaults(func=do_system_shutdown)
+    # -- status info
+    info_status_ap = status_subs.add_parser('info', help="dumps status-info json to stdout")
+    add_output_arguments(info_status_ap)
+    info_status_ap.set_defaults(func=do_info_get)
 
     # details of the source handling branch
     source_subs = topic_source_ap.add_subparsers(**action_supbarser_kwargs)
