@@ -68,6 +68,10 @@ class AmpliPi:
         response = await self._client.patch(f'sources/{source_id}', source_update.json(**json_ser_kwargs))
         return Status.parse_obj(response)
 
+    async def get_source_img(self, source_id: int, height: int, outfile: str = None) -> None:
+        await self._client.get(f'sources/{source_id}/image/{height}', expect_json=False, outfile=outfile)
+        return None
+
     # -- zone calls
     async def get_zone(self, zone_id: int) -> Zone:
         response = await self._client.get(f'zones/{zone_id}')

@@ -3,6 +3,7 @@ from json.decoder import JSONDecodeError
 from urllib.parse import urljoin
 
 import requests
+import sys
 from aiohttp import ClientSession, ClientResponse
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
@@ -87,6 +88,22 @@ class Client(object):
                 )
             )
 
+    async def _write_response(self, response: ClientResponse, outfile: str = None) -> None:
+        if response.status >= 400:
+            # API returned some sort of error that must be handled
+            await self._handle_error(response)
+
+        if outfile:
+            with open(outfile, 'wb') as out:
+                out.write(await response.read())
+        else:
+            ctype = response.headers.get('content-type')
+            if ctype.startswith('text/') or ctype in ('application/json', ):
+                print("we think it is ok to write ", ctype)
+                sys.stdout.write(await response.read())
+            else:
+                raise APIError(f"No output file provided. Content of type {ctype} will not be written to terminal/stdout")
+
     async def _process_response(self, response: ClientResponse) -> dict:
 
         if response.status >= 400:
@@ -158,14 +175,18 @@ class Client(object):
         ) as e:
             raise AmpliPiUnreachableError(e)
 
-    async def get(self, path: str, headers=None) -> dict:
+    async def get(self, path: str, headers=None, expect_json: bool = True, outfile: str = None) -> dict:
         try:
             async with self._http_session.get(
                     url=self.url(path),
                     timeout=self._timeout,
                     headers=headers_or_default(headers),
             ) as response:
-                return await self._process_response(response)
+                if expect_json:
+                    return await self._process_response(response)
+                # else
+                await self._write_response(response, outfile)
+                return {}
         except (
                 requests.exceptions.ConnectionError,
                 requests.exceptions.ReadTimeout,

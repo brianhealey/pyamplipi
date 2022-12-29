@@ -17,7 +17,8 @@ from aiohttp.client_exceptions import ServerDisconnectedError
 from tabulate import tabulate
 from textwrap import indent
 import validators
-from .models import Status, Config, Info, Source, Zone, Group, Stream, Preset, Announcement
+from .models import Status, Config, Info, Source, Zone, Group, Stream, Preset, Announcement, \
+    SourceUpdate
 from .amplipi import AmpliPi
 from .error import APIError
 
@@ -30,8 +31,10 @@ json_ser_kwargs = dict(exclude_unset=True, indent=2)  # arguments to serialise t
 # text formatters
 def em(msg: str) -> str: return f'\033[4m{msg}\033[0m'                                   # underline text for emphasis
 def table(d, h) -> str: return indent(tabulate(d, h, tablefmt='rounded_outline'), '  ')  # make a nice indented table
-def model_list_to_json(l: List[BaseModel]) -> str:                                       # simple list json for List[BaseModel] constructs
-    return f"[{','.join([i.json(**json_ser_kwargs) for i in l])}]"
+
+
+def model_list_to_json(it: List[BaseModel]) -> str:     # simple list json for List[BaseModel] constructs
+    return f"[{','.join([i.json(**json_ser_kwargs) for i in it])}]"
 
 
 # list methods dumping comprehensive output to stdout
@@ -216,7 +219,7 @@ async def do_source_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwarg
 
 
 async def do_source_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-    """ Gets Sources json represenatation by source_id
+    """ Gets Source(id) json represenatation by source_id
     """
     log.debug(f"source.get({args.sourceid})")
     assert 0 <= args.sourceid <= 3, "source id must be in range 0..3"
@@ -232,8 +235,27 @@ async def do_source_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwa
     write_out(model_list_to_json(sources), args.outfile)
 
 
-# async def do_source_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-# async def do_source_imageget(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+async def do_source_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Update a source(id)'s configuration
+    """
+    log.debug(f"source.set({args.sourceid}, input={args.input if args.input is not None else '«stdin»'})")
+    assert 0 <= args.sourceid <= 3, "source id must be in range 0..3"
+
+    def validate(input: dict):
+        log.debug(f"validating source_update kwargs: {input}")
+        assert any((input.get('name'), input.get('input'))), "no actual values to be set"
+    src_update: SourceUpdate = instantiate_model(SourceUpdate, args.infile, args.input, validate)
+    await amplipi.set_source(args.sourceid, src_update)  # ignoring status return value
+
+
+async def do_source_getimg(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Get a square jpeg image representing the current media playing on source(id)
+    """
+    log.debug(f"source.getimg({args.sourceid}, {args.size})")
+    assert 0 <= args.sourceid <= 3, "source id must be in range 0..3"
+    assert 1 <= args.size <= 500, "image size must be in range 1..500"
+    assert args.outfile, "Please provide a -O outfile because the jpeg output will clutter stdout/terminal"
+    await amplipi.get_source_img(args.sourceid, args.size, args.outfile)
 
 
 async def do_zone_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
@@ -411,6 +433,7 @@ async def shell_cmd_exec(cmdline: str, amplipi: AmpliPi, argsparser: ArgumentPar
         print(e)
     except (AssertionError, APIError) as e:
         log.error(e)
+        print(e)
     except ServerDisconnectedError as e:
         log.exception(e)
         print("server disconnected - pls retry")
@@ -667,7 +690,13 @@ def get_arg_parser() -> ArgumentParser:
     set_source_ap = source_subs.add_parser('set', help="overwrites source configuration with json input from stdin")
     add_id_argument(set_source_ap, Source)
     add_input_arguments(set_source_ap, Source)
-    set_source_ap.set_defaults(func=do_placeholder)
+    set_source_ap.set_defaults(func=do_source_set)
+    # -- source getimg
+    getimg_source_ap = source_subs.add_parser('img', help="gets a square jpeg image of what is playing on the source")
+    add_id_argument(getimg_source_ap, Source)
+    getimg_source_ap.add_argument('size', type=int, help="the size (sizexsize) in pixels of the image to be returned")
+    add_output_arguments(getimg_source_ap)
+    getimg_source_ap.set_defaults(func=do_source_getimg)
 
     # details of the zone handling branch
     zone_subs = topic_zone_ap.add_subparsers(**action_supbarser_kwargs)
@@ -858,6 +887,7 @@ def main():
         loop.run_until_complete(args.func(args, amplipi, shell=False, argsparser=ap))
     except (AssertionError, APIError) as e:
         log.error(e)
+        print(e)
         exitcode = 1
     except Exception as e:
         log.exception(e)
