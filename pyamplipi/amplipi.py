@@ -46,6 +46,10 @@ class AmpliPi:
         response = await self._client.post('reboot')
         return Status.parse_obj(response)
 
+    async def system_shutdown(self) -> Status:
+        response = await self._client.post('shutdown')
+        return Status.parse_obj(response)
+
     async def get_sources(self) -> List[Source]:
         response = await self._client.get('sources')
         return [Source.parse_obj(source) for source in response['sources']]

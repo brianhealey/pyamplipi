@@ -182,7 +182,16 @@ async def do_system_reboot(args: Namespace, amplipi: AmpliPi, shell: bool, **kwa
     await amplipi.system_reboot()  # ignoring status return value
 
 
-# async def do_shutdown(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+async def do_system_shutdown(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Clean shutdown of AmpliPi and its OS.
+    """
+    log.debug(f"system.shutdown() forced = {args.force}")
+    # Make sure the user wants this
+    assert args.force or interactive_confirm("You are about to shutdown the system OS."), \
+        "Lacking end-user confirmation. Aborted!"
+    await amplipi.system_shutdown()  # ignoring status return value
+
+
 # async def do_info_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 
 async def do_source_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
@@ -469,11 +478,20 @@ def add_id_argument(ap: ArgumentParser, model_cls: ModelMetaclass):
         help="identifier of the {name}")
 
 
-def add_input_arguments(ap: ArgumentParser, model_cls: ModelMetaclass):
+def add_input_arguments(ap: ArgumentParser, model_cls: ModelMetaclass, too_complex_for_cli_keyvals: bool = False):
     """ Adds the --input -i and --infile -I  argument in a consistent way
-    The -i argument takes key-value pairs to construct models rather then provide those in json via stdin
+    The -i argument takes key-value pairs to construct models rather then provide those in json via stdin (for simple models only)
     The -I argument specifies an input file to use in stead of stdin
     """
+    ap.add_argument(
+        '--infile', '-I',
+        action='store',
+        metavar="FILE",
+        help="provide the file to be used as input source in stead of stdin.",
+    )
+    if too_complex_for_cli_keyvals:
+        return
+    # else allow key-val --input
     ap.add_argument(
         '--input', '-i',
         action=ParseDict,
@@ -484,12 +502,6 @@ def add_input_arguments(ap: ArgumentParser, model_cls: ModelMetaclass):
         " Use double quotes to let values have spaces."
         ' foo="this is a sentence".'
         " Using this avoids passing the json representation via stdin.",
-    )
-    ap.add_argument(
-        '--infile', '-I',
-        action='store',
-        metavar="FILE",
-        help="provide the file to be used as input source in stead of stdin.",
     )
 
 
@@ -509,10 +521,6 @@ def get_arg_parser() -> ArgumentParser:
     """ Defines the arguments to this module's __main__ cli script
     by using Python's [argparse](https://docs.python.org/3/library/argparse.html)
     """
-    # TODO for better handling inside shell
-    #      pass  exit_on_error=False + handle exceptions
-    #      per https://stackoverflow.com/questions/5943249/python-argparse-and-controlling-overriding-the-exit-status-code
-    #      and https://docs.python.org/3/library/argparse.html#exit-on-error
     parent_ap = ArgumentParser(
         prog='pyamplipi',
         description='CLI for interactive amplipi /api calls',
@@ -598,23 +606,24 @@ def get_arg_parser() -> ArgumentParser:
     # -- config load (~≃ status set)
     load_config_ap = status_subs.add_parser('set', aliases=['load'], help="overwrites status json with input from stdin")
     add_force_argument(load_config_ap)
-    add_input_arguments(load_config_ap, Status)
+    add_input_arguments(load_config_ap, Status, too_complex_for_cli_keyvals=True)
     load_config_ap.set_defaults(func=do_config_load)
     # -- factory-reset
     factory_reset_ap = status_subs.add_parser('factory', aliases=['fact'], help="resets the configuration to factory defaults")
     add_force_argument(factory_reset_ap)
-    add_input_arguments(factory_reset_ap, Status)
     factory_reset_ap.set_defaults(func=do_factory_reset)
     # -- system-reset
     system_reset_ap = status_subs.add_parser('reset', help="resets the system firmware, reloads the current config")
     add_force_argument(system_reset_ap)
-    add_input_arguments(system_reset_ap, Status)
     system_reset_ap.set_defaults(func=do_system_reset)
     # -- system-reboot
-    system_reboot_ap = status_subs.add_parser('reboot', help="reboots the system OS and all running services")
+    system_reboot_ap = status_subs.add_parser('reboot', aliases=['boot', 'restart'], help="reboots the system OS")
     add_force_argument(system_reboot_ap)
-    add_input_arguments(system_reboot_ap, Status)
     system_reboot_ap.set_defaults(func=do_system_reboot)
+    # -- system-shutdown
+    system_shutdown_ap = status_subs.add_parser('shutdown', aliases=['shut', 'stop'], help="shuts down the system OS")
+    add_force_argument(system_shutdown_ap)
+    system_shutdown_ap.set_defaults(func=do_system_shutdown)
 
     # details of the source handling branch
     source_subs = topic_source_ap.add_subparsers(**action_supbarser_kwargs)
