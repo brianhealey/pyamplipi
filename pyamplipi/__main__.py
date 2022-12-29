@@ -149,6 +149,11 @@ async def do_config_load(args: Namespace, amplipi: AmpliPi, shell: bool, **kwarg
     assert args.force or interactive_confirm("You are about to overwrite the configuration."), "Aborted"
     await amplipi.load_config(new_config)  # ignoring status return value
 
+# async def do_factory_reset(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_reset(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_reboot(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_shutdown(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_info_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 
 async def do_source_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Prints out comprehensive listing of sources
@@ -166,7 +171,9 @@ async def do_source_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs
     source: Source = await amplipi.get_source(args.sourceid)
     write_out(source.json(**json_ser_kwargs), args.outfile)
 
+# async def do_source_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 # async def do_source_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_source_imageget(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 
 
 async def do_zone_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
@@ -186,6 +193,8 @@ async def do_zone_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     write_out(zone.json(**json_ser_kwargs), args.outfile)
 
 # async def do_zone_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_zone_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_zone_setall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 
 
 async def do_group_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
@@ -205,6 +214,7 @@ async def do_group_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs)
     write_out(group.json(**json_ser_kwargs), args.outfile)
 
 # async def do_group_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_group_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 # async def do_group_new(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 # async def do_group_del(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 
@@ -234,6 +244,7 @@ async def do_stream_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs
 # async def do_stream_stop(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 # async def do_stream_next(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 # async def do_stream_prev(args: Namespace, amplipi: AmpliPI, shell: bool, **kwargs):
+# async def do_stream_stationchange(args: Namespace, amplipi: AmpliPI, shell: bool, **kwargs):
 
 
 async def do_preset_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
@@ -254,6 +265,7 @@ async def do_preset_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs
 
 
 # async def do_preset_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+# async def do_preset_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 # async def do_preset_load(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 # async def do_preset_new(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 # async def do_preset_del(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
