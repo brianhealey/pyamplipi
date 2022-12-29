@@ -191,12 +191,15 @@ class Info(BaseModel):
     fw: Optional[List[FirmwareInfo]]
 
 
-class Status(BaseModel):
+class Config(BaseModel):
     sources: List[Source] = []
     zones: List[Zone] = []
     groups: List[Group] = []
     streams: List[Stream] = []
     presets: List[Preset] = []
+
+
+class Status(Config):
     info: Optional[Info]
 
 

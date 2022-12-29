@@ -4,7 +4,7 @@ from aiohttp import ClientSession
 
 from pyamplipi.client import Client
 from pyamplipi.models import Group, Stream, SourceUpdate, MultiZoneUpdate, ZoneUpdate, \
-    GroupUpdate, StreamUpdate, Announcement, Status, Source, Zone, Preset
+    GroupUpdate, StreamUpdate, Announcement, Status, Config, Source, Zone, Preset
 
 json_ser_kwargs = dict(exclude_unset=True)
 
@@ -30,7 +30,7 @@ class AmpliPi:
         response = await self._client.get('')
         return Status.parse_obj(response)
 
-    async def load_config(self, config: Status) -> Status:
+    async def load_config(self, config: Config) -> Status:
         response = await self._client.post('load', config.json(**json_ser_kwargs))
         return Status.parse_obj(response)
 

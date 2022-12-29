@@ -16,7 +16,7 @@ from aiohttp.client_exceptions import ServerDisconnectedError
 from tabulate import tabulate
 from textwrap import indent
 import validators
-from .models import Status, Info, Source, Zone, Group, Stream, Preset, Announcement
+from .models import Status, Config, Info, Source, Zone, Group, Stream, Preset, Announcement
 from .amplipi import AmpliPi
 from .error import APIError
 
@@ -144,7 +144,7 @@ async def do_config_load(args: Namespace, amplipi: AmpliPi, shell: bool, **kwarg
     """
     log.debug(f"config.load(«stdin») forced = {args.force}")
     # Be sure to consume stdin before entering interactive dialogue
-    new_config: Status = instantiate_model(Status, args.infile)  # not using any --input and no validate()
+    new_config: Config = instantiate_model(Config, args.infile)  # not using any --input and no validate()
     # Make sure the user wants this
     assert args.force or interactive_confirm("You are about to overwrite the configuration."), "Aborted"
     await amplipi.load_config(new_config)  # ignoring status return value
