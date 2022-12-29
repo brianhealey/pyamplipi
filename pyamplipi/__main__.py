@@ -172,7 +172,16 @@ async def do_system_reset(args: Namespace, amplipi: AmpliPi, shell: bool, **kwar
     await amplipi.system_reset()  # ignoring status return value
 
 
-# async def do_reboot(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+async def do_system_reboot(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Restart the OS and all of the AmpliPi services.
+    """
+    log.debug(f"system.reboot() forced = {args.force}")
+    # Make sure the user wants this
+    assert args.force or interactive_confirm("You are about to reboot the system OS and all running services."), \
+        "Lacking end-user confirmation. Aborted!"
+    await amplipi.system_reboot()  # ignoring status return value
+
+
 # async def do_shutdown(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 # async def do_info_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 
@@ -601,6 +610,11 @@ def get_arg_parser() -> ArgumentParser:
     add_force_argument(system_reset_ap)
     add_input_arguments(system_reset_ap, Status)
     system_reset_ap.set_defaults(func=do_system_reset)
+    # -- system-reboot
+    system_reboot_ap = status_subs.add_parser('reboot', help="reboots the system OS and all running services")
+    add_force_argument(system_reboot_ap)
+    add_input_arguments(system_reboot_ap, Status)
+    system_reboot_ap.set_defaults(func=do_system_reboot)
 
     # details of the source handling branch
     source_subs = topic_source_ap.add_subparsers(**action_supbarser_kwargs)
