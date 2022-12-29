@@ -91,24 +91,10 @@ def interactive_confirm(msg: str = 'This is not without danger.'):
     # reopen the tty to make sure the stdin read() until EOF has not closed it
     sys.stdin = open("/dev/tty")  # TODO check how this behaves on windows?
     answer = input(f'{em("Caution:")} {msg}. Are you sure [N/y]?').lower()
-    return answer[0] == 'y'
+    return len(answer) > 0 and answer[0] == 'y'
 
 
-# actual service-methods
-async def do_placeholder(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-    """ placeholder function during dev - to be removed when completed
-    """
-    log.warning(f"todo handle command args --> \n  args = {args}\n  ammplipi = {amplipi}")
-
-
-async def do_status_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-    """ Prints out comprehensive status information
-    """
-    log.debug("status.list")
-    status: Status = await amplipi.get_status()
-    list_status(status)
-
-
+# helper io functions
 def read_in(infile: str = None) -> str:
     """ Read input from infile (if not None) else from stdin
     """
@@ -131,6 +117,21 @@ def write_out(json_str: str, outfile: str = None):
             out.write(json_str)
 
 
+# actual service-methods
+async def do_placeholder(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ placeholder function during dev - to be removed when completed
+    """
+    log.warning(f"todo handle command args --> \n  args = {args}\n  ammplipi = {amplipi}")
+
+
+async def do_status_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Prints out comprehensive status information
+    """
+    log.debug("status.list")
+    status: Status = await amplipi.get_status()
+    list_status(status)
+
+
 async def do_status_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Gets Status json represenatation
     """
@@ -146,8 +147,18 @@ async def do_config_load(args: Namespace, amplipi: AmpliPi, shell: bool, **kwarg
     # Be sure to consume stdin before entering interactive dialogue
     new_config: Config = instantiate_model(Config, args.infile)  # not using any --input and no validate()
     # Make sure the user wants this
-    assert args.force or interactive_confirm("You are about to overwrite the configuration."), "Aborted"
+    assert args.force or interactive_confirm("You are about to overwrite the configuration."), "Lacking end-user confirmation. Aborted!"
     await amplipi.load_config(new_config)  # ignoring status return value
+
+
+async def do_factory_reset(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Performs factory reset
+    """
+    log.debug(f"system.factory_reset() forced = {args.force}")
+    # Make sure the user wants this
+    assert args.force or interactive_confirm("You are about to overwrite the configuration."), "Lacking end-user confirmation. Aborted!"
+    await amplipi.factory_reset()  # ignoring status return value
+
 
 # async def do_factory_reset(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 # async def do_reset(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
@@ -523,7 +534,7 @@ def get_arg_parser() -> ArgumentParser:
 
     # create the various topic branches
     topic_status_ap = topics_subs.add_parser(
-        "status", aliases=['stat', 'state', 'conf', 'config'],
+        "status", aliases=['stat', 'state', 'conf', 'config', 'sys', 'system'],
         exit_on_error=False,
         help="view/store the general status")
     topic_source_ap = topics_subs.add_parser(
@@ -570,6 +581,11 @@ def get_arg_parser() -> ArgumentParser:
     add_force_argument(load_config_ap)
     add_input_arguments(load_config_ap, Status)
     load_config_ap.set_defaults(func=do_config_load)
+    # -- factory-reset
+    factory_reset_ap = status_subs.add_parser('factory', aliases=['fact'], help="resets the configuration to factory defaults")
+    add_force_argument(factory_reset_ap)
+    add_input_arguments(factory_reset_ap, Status)
+    factory_reset_ap.set_defaults(func=do_factory_reset)
 
     # details of the source handling branch
     source_subs = topic_source_ap.add_subparsers(**action_supbarser_kwargs)
