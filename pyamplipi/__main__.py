@@ -147,21 +147,31 @@ async def do_config_load(args: Namespace, amplipi: AmpliPi, shell: bool, **kwarg
     # Be sure to consume stdin before entering interactive dialogue
     new_config: Config = instantiate_model(Config, args.infile)  # not using any --input and no validate()
     # Make sure the user wants this
-    assert args.force or interactive_confirm("You are about to overwrite the configuration."), "Lacking end-user confirmation. Aborted!"
+    assert args.force or interactive_confirm("You are about to overwrite the configuration."), \
+        "Lacking end-user confirmation. Aborted!"
     await amplipi.load_config(new_config)  # ignoring status return value
 
 
 async def do_factory_reset(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Performs factory reset
     """
-    log.debug(f"system.factory_reset() forced = {args.force}")
+    log.debug(f"config.factory_reset() forced = {args.force}")
     # Make sure the user wants this
-    assert args.force or interactive_confirm("You are about to overwrite the configuration."), "Lacking end-user confirmation. Aborted!"
+    assert args.force or interactive_confirm("You are about to reset the configuration to factory defaults."), \
+        "Lacking end-user confirmation. Aborted!"
     await amplipi.factory_reset()  # ignoring status return value
 
 
-# async def do_factory_reset(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-# async def do_reset(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+async def do_system_reset(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Reload the current configuration, resetting the firmware in the process.
+    """
+    log.debug(f"system.reset() forced = {args.force}")
+    # Make sure the user wants this
+    assert args.force or interactive_confirm("You are about to reset the system firmware and reload the current config."), \
+        "Lacking end-user confirmation. Aborted!"
+    await amplipi.system_reset()  # ignoring status return value
+
+
 # async def do_reboot(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 # async def do_shutdown(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 # async def do_info_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
@@ -586,6 +596,11 @@ def get_arg_parser() -> ArgumentParser:
     add_force_argument(factory_reset_ap)
     add_input_arguments(factory_reset_ap, Status)
     factory_reset_ap.set_defaults(func=do_factory_reset)
+    # -- system-reset
+    system_reset_ap = status_subs.add_parser('reset', help="resets the system firmware, reloads the current config")
+    add_force_argument(system_reset_ap)
+    add_input_arguments(system_reset_ap, Status)
+    system_reset_ap.set_defaults(func=do_system_reset)
 
     # details of the source handling branch
     source_subs = topic_source_ap.add_subparsers(**action_supbarser_kwargs)
