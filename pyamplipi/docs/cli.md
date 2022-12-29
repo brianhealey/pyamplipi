@@ -164,13 +164,13 @@ The source code includes an example `debug-logconf.yml` for convenience.
 ### Case 1 -- Making a status backup
 
 ```sh
-$ pyamplipi status get > $(date --iso)-amplipi-status.json
+$ pyamplipi status get > /var/backups/$(date --iso)-amplipi-status.json
 ```
 
 ### Case 2 -- Restoring  the latest status backup
 
  ```sh
- $ pyamplipi config load  < $(ls  -t1 *amplipi-status.json | head -1)  
+ $ pyamplipi config load  < $(ls  -t1 /var/backups/*amplipi-status.json | head -1)  
 ```
 
 Note:
