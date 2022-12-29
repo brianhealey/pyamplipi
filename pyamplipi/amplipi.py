@@ -26,6 +26,7 @@ class AmpliPi:
             disable_insecure_warning,
         )
 
+    # -- status calls
     async def get_status(self) -> Status:
         response = await self._client.get('')
         return Status.parse_obj(response)
@@ -54,6 +55,7 @@ class AmpliPi:
         response = await self._client.get('info')
         return Info.parse_obj(response)
 
+    # -- source calls
     async def get_sources(self) -> List[Source]:
         response = await self._client.get('sources')
         return [Source.parse_obj(source) for source in response['sources']]
@@ -66,6 +68,7 @@ class AmpliPi:
         response = await self._client.patch(f'sources/{source_id}', source_update.json(**json_ser_kwargs))
         return Status.parse_obj(response)
 
+    # -- zone calls
     async def get_zone(self, zone_id: int) -> Zone:
         response = await self._client.get(f'zones/{zone_id}')
         return Zone.parse_obj(response)
@@ -83,6 +86,7 @@ class AmpliPi:
                                             zone_update.json(**json_ser_kwargs))
         return Status.parse_obj(response)
 
+    # -- group calls
     async def create_group(self, new_group: Group) -> Group:
         response = await self._client.post('group', new_group.json(**json_ser_kwargs))
         return Group.parse_obj(response)
@@ -103,6 +107,7 @@ class AmpliPi:
         response = await self._client.patch(f'groups/{group_id}', update.json(**json_ser_kwargs))
         return Status.parse_obj(response)
 
+    # -- stream calls
     async def get_streams(self) -> List[Stream]:
         response = await self._client.get('streams')
         return [Stream.parse_obj(stream) for stream in response['streams']]
@@ -143,6 +148,7 @@ class AmpliPi:
         response = await self._client.post(f'streams/{stream_id}', update.json(**json_ser_kwargs))
         return Stream.parse_obj(response)
 
+    # -- preset calls
     async def get_presets(self) -> List[Preset]:
         response = await self._client.get('presets')
         return [Preset.parse_obj(preset) for preset in response['presets']]
@@ -151,9 +157,11 @@ class AmpliPi:
         response = await self._client.get(f'presets/{preset_id}')
         return Preset.parse_obj(response)
 
+    # -- anounce call
     async def announce(self, announcement: Announcement) -> Status:
         response = await self._client.post('announce', announcement.json(**json_ser_kwargs))
         return Status.parse_obj(response)
 
+    # -- client control
     async def close(self):
         await self._client.close()

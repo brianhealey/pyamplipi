@@ -9,6 +9,7 @@ import datetime
 from dotenv import load_dotenv
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, Namespace, Action, ArgumentError
 from typing import List, Callable
+from pydantic import BaseModel
 from pydantic.fields import ModelField
 from pydantic.main import ModelMetaclass
 from aiohttp import TCPConnector, ClientSession
@@ -27,8 +28,10 @@ json_ser_kwargs = dict(exclude_unset=True, indent=2)  # arguments to serialise t
 
 
 # text formatters
-def em(msg: str) -> str: return f'\033[4m{msg}\033[0m'                                  # underline text for emphasis
+def em(msg: str) -> str: return f'\033[4m{msg}\033[0m'                                   # underline text for emphasis
 def table(d, h) -> str: return indent(tabulate(d, h, tablefmt='rounded_outline'), '  ')  # make a nice indented table
+def model_list_to_json(l: List[BaseModel]) -> str:                                       # simple list json for List[BaseModel] constructs
+    return f"[{','.join([i.json(**json_ser_kwargs) for i in l])}]"
 
 
 # list methods dumping comprehensive output to stdout
@@ -37,8 +40,8 @@ def list_info(info: Info):
     headers = ["Filename", "Version", "Mock Controls", "Mock Streams", "Online", "Firmware(s)"]
     data = list()
     data.append([
-        info.config_file, info.version, 
-        info.mock_ctrl, info.mock_streams, info.online, 
+        info.config_file, info.version,
+        info.mock_ctrl, info.mock_streams, info.online,
         "/".join([f"{fw.version}{'*' if fw.git_dirty else ''}" for fw in info.fw]),
     ])
     print(table(data, headers))
@@ -220,7 +223,15 @@ async def do_source_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs
     source: Source = await amplipi.get_source(args.sourceid)
     write_out(source.json(**json_ser_kwargs), args.outfile)
 
-# async def do_source_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+
+async def do_source_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Gets Sources json represenatation by source_id
+    """
+    log.debug("source.getall()")
+    sources: List[Source] = await amplipi.get_sources()
+    write_out(model_list_to_json(sources), args.outfile)
+
+
 # async def do_source_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 # async def do_source_imageget(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 
@@ -485,7 +496,7 @@ def add_id_argument(ap: ArgumentParser, model_cls: ModelMetaclass):
     ap.add_argument(
         f"{name}id",
         action='store', type=int, metavar="ID",
-        help="identifier of the {name}")
+        help="identifier of the {name} (integer)")
 
 
 def add_input_arguments(ap: ArgumentParser, model_cls: ModelMetaclass, too_complex_for_cli_keyvals: bool = False):
@@ -648,6 +659,10 @@ def get_arg_parser() -> ArgumentParser:
     add_id_argument(get_source_ap, Source)
     add_output_arguments(get_source_ap)
     get_source_ap.set_defaults(func=do_source_get)
+    # -- source get-all
+    getall_source_ap = source_subs.add_parser('get-all', aliases=['getall'], help="dumps source configuration json to stdout")
+    add_output_arguments(getall_source_ap)
+    getall_source_ap.set_defaults(func=do_source_getall)
     # -- source set
     set_source_ap = source_subs.add_parser('set', help="overwrites source configuration with json input from stdin")
     add_id_argument(set_source_ap, Source)
