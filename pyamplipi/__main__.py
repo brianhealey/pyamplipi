@@ -18,7 +18,7 @@ from tabulate import tabulate
 from textwrap import indent
 import validators
 from .models import Status, Config, Info, Source, Zone, Group, Stream, Preset, Announcement, \
-    SourceUpdate, ZoneUpdate, MultiZoneUpdate
+    SourceUpdate, ZoneUpdate, MultiZoneUpdate, GroupUpdate
 from .amplipi import AmpliPi
 from .error import APIError
 
@@ -128,6 +128,7 @@ def write_out(json_str: str, outfile: str = None):
 
 
 # actual service-methods
+# -- status section
 async def do_placeholder(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ placeholder function during dev - to be removed when completed
     """
@@ -210,6 +211,7 @@ async def do_info_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     write_out(info.json(**json_ser_kwargs), args.outfile)
 
 
+# -- source section
 async def do_source_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Prints out comprehensive listing of sources
     """
@@ -258,6 +260,7 @@ async def do_source_getimg(args: Namespace, amplipi: AmpliPi, shell: bool, **kwa
     await amplipi.get_source_img(args.sourceid, args.size, args.outfile)
 
 
+# -- zone section
 async def do_zone_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Prints out comprehensive listing of zones
     """
@@ -304,6 +307,7 @@ async def do_zone_setall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwarg
     await amplipi.set_zones(mzone_update)  # ignoring status return value
 
 
+# -- group section
 async def do_group_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Prints out comprehensive listing of groups
     """
@@ -320,12 +324,50 @@ async def do_group_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs)
     group: Group = await amplipi.get_group(args.groupid)
     write_out(group.json(**json_ser_kwargs), args.outfile)
 
-# async def do_group_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-# async def do_group_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-# async def do_group_new(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-# async def do_group_del(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+
+async def do_group_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Gets Groups json represenatation 
+    """
+    log.debug(f"group.getall()")
+    groups: List[Group] = await amplipi.get_groups()
+    write_out(model_list_to_json(groups), args.outfile)
 
 
+async def do_group_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Update a group(id)'s configuration
+    """
+    log.debug(f"group.set({args.groupid}, input={args.input if args.input is not None else '«stdin»'})")
+    assert 0 <= args.groupid, "group id must be > 0"
+
+    def validate(input: dict):
+        log.debug(f"validating group_update kwargs: {input}")
+        assert len(input.keys()) > 0, "no actual group values to be set"
+    group_update: GroupUpdate = instantiate_model(GroupUpdate, args.infile, args.input, validate)
+    await amplipi.set_group(args.groupid, group_update)  # ignoring status return value
+
+
+async def do_group_new(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Create a new grouping of zones
+    """
+    log.debug(f"group.create(input={args.input if args.input is not None else '«stdin»'})")
+
+    def validate(input: dict):
+        log.debug(f"validating group_update kwargs: {input}")
+        assert all((input.get('name'), input.get('zones'))) is not None, "group needs a name and list of zones"
+        assert all([bool(0 <= zid <= 35) for zid in input['zones']]), "zone ids must be in range 0..35"
+    group: Group = instantiate_model(Group, args.infile, args.input, validate)
+    await amplipi.create_group(group)  # ignoring status return value
+
+
+async def do_group_del(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Delete the group by groupid
+    """
+    log.debug(f"group.delete({args.groupid})")
+    assert 0 <= args.groupid, "group id must be > 0"
+    await amplipi.delete_group(args.groupid)  # ignoring status return value
+
+
+# -- stream section
 async def do_stream_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Prints out comprehensive listing of streams
     """
@@ -354,6 +396,7 @@ async def do_stream_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs
 # async def do_stream_stationchange(args: Namespace, amplipi: AmpliPI, shell: bool, **kwargs):
 
 
+# -- preset section
 async def do_preset_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Prints out comprehensive listing of presets
     """
@@ -378,6 +421,7 @@ async def do_preset_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs
 # async def do_preset_del(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
 
 
+# -- announce section
 async def do_announce(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Plays announcement
     """
@@ -394,6 +438,7 @@ async def do_announce(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     await amplipi.announce(announcement)   # returns Status object which we ignore
 
 
+# -- shell section
 async def do_shell(args: Namespace, amplipi: AmpliPi, shell: bool, argsparser: ArgumentParser, **kwargs):
     """ Evaluates entering interactive mode
     """
@@ -761,22 +806,26 @@ def get_arg_parser() -> ArgumentParser:
     add_id_argument(get_group_ap, Group)
     add_output_arguments(get_group_ap)
     get_group_ap.set_defaults(func=do_group_get)
+    # -- group getall
+    getall_group_ap = group_subs.add_parser('getall', help="dumps group configuration json to stdout")
+    add_output_arguments(getall_group_ap)
+    getall_group_ap.set_defaults(func=do_group_getall)
     # -- group set
     set_group_ap = group_subs.add_parser('set', help="overwrites group configuration with json input from stdin")
     add_id_argument(set_group_ap, Group)
-    add_input_arguments(set_group_ap, Group)
-    set_group_ap.set_defaults(func=do_placeholder)
+    add_input_arguments(set_group_ap, GroupUpdate)
+    set_group_ap.set_defaults(func=do_group_set)
     # -- group new
     new_group_ap = group_subs.add_parser(
             'new', aliases=['make', 'create'],
             help="create a new group based on the json input from stdin"
         )
     add_input_arguments(new_group_ap, Group)
-    new_group_ap.set_defaults(func=do_placeholder)
+    new_group_ap.set_defaults(func=do_group_new)
     # -- group del
     del_group_ap = group_subs.add_parser('delete', aliases=['del', 'rm'], help="deletes the specified group")
     add_id_argument(del_group_ap, Group)
-    del_group_ap.set_defaults(func=do_placeholder)
+    del_group_ap.set_defaults(func=do_group_del)
 
     # details of the stream handling branch
     stream_subs = topic_stream_ap.add_subparsers(**action_supbarser_kwargs)
