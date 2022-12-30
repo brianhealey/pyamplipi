@@ -4,7 +4,9 @@ from aiohttp import ClientSession
 
 from pyamplipi.client import Client
 from pyamplipi.models import Group, Stream, SourceUpdate, MultiZoneUpdate, ZoneUpdate, \
-    GroupUpdate, StreamUpdate, Announcement, Status, Config, Info, Source, Zone, Preset
+    GroupUpdate, StreamUpdate, Announcement, Status, Config, Info, Source, Zone, Preset, \
+    PresetUpdate
+
 
 json_ser_kwargs = dict(exclude_unset=True)
 
@@ -164,6 +166,22 @@ class AmpliPi:
     async def get_preset(self, preset_id: int) -> Preset:
         response = await self._client.get(f'presets/{preset_id}')
         return Preset.parse_obj(response)
+
+    async def set_preset(self, preset_id: int, update: PresetUpdate) -> Status:
+        response = await self._client.patch(f'presets/{preset_id}', update.json(**json_ser_kwargs))
+        return Status.parse_obj(response)
+
+    async def create_preset(self, new_preset: Preset) -> Preset:
+        response = await self._client.post('preset', new_preset.json(**json_ser_kwargs))
+        return Preset.parse_obj(response)
+
+    async def delete_preset(self, preset_id: int) -> Status:
+        response = await self._client.delete(f'presets/{preset_id}')
+        return Status.parse_obj(response)
+
+    async def load_preset(self, preset_id: int) -> Status:
+        response = await self._client.post(f'presets/{preset_id}/load')
+        return Status.parse_obj(response)
 
     # -- anounce call
     async def announce(self, announcement: Announcement) -> Status:
