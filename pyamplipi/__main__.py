@@ -18,7 +18,7 @@ from tabulate import tabulate
 from textwrap import indent
 import validators
 from .models import Status, Config, Info, Source, Zone, Group, Stream, Preset, Announcement, \
-    SourceUpdate, ZoneUpdate, MultiZoneUpdate, GroupUpdate
+    SourceUpdate, ZoneUpdate, MultiZoneUpdate, GroupUpdate, StreamUpdate
 from .amplipi import AmpliPi
 from .error import APIError
 
@@ -230,7 +230,7 @@ async def do_source_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs
 
 
 async def do_source_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-    """ Gets Sources json represenatation 
+    """ Gets Sources json represenatation
     """
     log.debug("source.getall()")
     sources: List[Source] = await amplipi.get_sources()
@@ -303,7 +303,7 @@ async def do_zone_setall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwarg
     """ Update a bunch of zones (and groups) with the same configuration changes
     """
     log.debug("zone.setall(«stdin»)")
-    mzone_update: MultiZoneUpdate = instantiate_model(MultiZoneUpdate, args.infile)  # not supporting -i 
+    mzone_update: MultiZoneUpdate = instantiate_model(MultiZoneUpdate, args.infile)  # not supporting -i
     await amplipi.set_zones(mzone_update)  # ignoring status return value
 
 
@@ -326,9 +326,9 @@ async def do_group_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs)
 
 
 async def do_group_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-    """ Gets Groups json represenatation 
+    """ Gets Groups json represenatation
     """
-    log.debug(f"group.getall()")
+    log.debug("group.getall()")
     groups: List[Group] = await amplipi.get_groups()
     write_out(model_list_to_json(groups), args.outfile)
 
@@ -353,7 +353,7 @@ async def do_group_new(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs)
 
     def validate(input: dict):
         log.debug(f"validating group_update kwargs: {input}")
-        assert all((input.get('name'), input.get('zones'))) is not None, "group needs a name and list of zones"
+        assert all((input.get('name'), input.get('zones'))), "group needs a name and list of zones"
         assert all([bool(0 <= zid <= 35) for zid in input['zones']]), "zone ids must be in range 0..35"
     group: Group = instantiate_model(Group, args.infile, args.input, validate)
     await amplipi.create_group(group)  # ignoring status return value
@@ -385,15 +385,93 @@ async def do_stream_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs
     write_out(stream.json(**json_ser_kwargs), args.outfile)
 
 
-# async def do_stream_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-# async def do_stream_new(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-# async def do_stream_del(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-# async def do_stream_play(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-# async def do_stream_pause(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-# async def do_stream_stop(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-# async def do_stream_next(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-# async def do_stream_prev(args: Namespace, amplipi: AmpliPI, shell: bool, **kwargs):
-# async def do_stream_stationchange(args: Namespace, amplipi: AmpliPI, shell: bool, **kwargs):
+async def do_stream_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Gets Streams json represenatation
+    """
+    log.debug("stream.getall()")
+    streams: List[Stream] = await amplipi.get_stream(args.streamid)
+    write_out(model_list_to_json(streams), args.outfile)
+
+
+async def do_stream_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Update a stream(id)'s configuration
+    """
+    log.debug(f"stream.set({args.streamid}, input={args.input if args.input is not None else '«stdin»'})")
+    assert 0 <= args.streamid, "stream id must be > 0"
+
+    def validate(input: dict):
+        log.debug(f"validating stream_update kwargs: {input}")
+        assert len(input.keys()) > 0, "no actual stream values to be set"
+    stream_update: StreamUpdate = instantiate_model(StreamUpdate, args.infile, args.input, validate)
+    await amplipi.set_stream(args.streamid, stream_update)  # ignoring status return value
+
+
+async def do_stream_new(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Create a new stream
+    """
+    log.debug(f"stream.create(input={args.input if args.input is not None else '«stdin»'})")
+
+    def validate(input: dict):
+        log.debug(f"validating stream_update kwargs: {input}")
+        assert all((input.get('name'), input.get('type'))), "stream needs a name and a type"
+    stream: Stream = instantiate_model(Stream, args.infile, args.input, validate)
+    await amplipi.create_stream(stream)  # ignoring status return value
+
+
+async def do_stream_del(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Delete the stream by streamid
+    """
+    log.debug(f"stream.delete({args.streamid})")
+    assert 0 <= args.streamid, "stream id must be > 0"
+    await amplipi.delete_stream(args.streamid)  # ignoring status return value
+
+
+async def do_stream_play(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Play the stream by streamid
+    """
+    log.debug(f"stream.play({args.streamid})")
+    assert 0 <= args.streamid, "stream id must be > 0"
+    await amplipi.play_stream(args.streamid)  # ignoring status return value
+
+
+async def do_stream_pause(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Pauses the stream by streamid
+    """
+    log.debug(f"stream.pause({args.streamid})")
+    assert 0 <= args.streamid, "stream id must be > 0"
+    await amplipi.pause_stream(args.streamid)  # ignoring status return value
+
+
+async def do_stream_stop(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Stops the stream by streamid
+    """
+    log.debug(f"stream.stop({args.streamid})")
+    assert 0 <= args.streamid, "stream id must be > 0"
+    await amplipi.stop_stream(args.streamid)  # ignoring status return value
+
+
+async def do_stream_next(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Next item in the stream by streamid
+    """
+    log.debug(f"stream.next({args.streamid})")
+    assert 0 <= args.streamid, "stream id must be > 0"
+    await amplipi.next_stream(args.streamid)  # ignoring status return value
+
+
+async def do_stream_prev(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Previous item in the stream by streamid
+    """
+    log.debug(f"stream.previous({args.streamid})")
+    assert 0 <= args.streamid, "stream id must be > 0"
+    await amplipi.previous_stream(args.streamid)  # ignoring status return value
+
+
+async def do_stream_stationchange(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ StationChange on the stream by streamid
+    """
+    log.debug(f"stream.station_change({args.streamid})")
+    assert 0 <= args.streamid, "stream id must be > 0"
+    await amplipi.station_change_stream(args.streamid, args.station)  # ignoring status return value
 
 
 # -- preset section
@@ -517,6 +595,12 @@ def instantiate_model(model_cls: ModelMetaclass, infile: str, input: dict = None
       (1) either the passed input dict (if not None) merged with env var defaults
       (2) either a json representation read from stdin
     """
+    # TODO revisit this approach in the case input is not None
+    #    -- BaseModel.parse_obj(dict) is probably better suited than the current BaseModel(**kwargs)
+    #    -- the whole parse_valuestr can probably be avoided
+    #    -- more complex structures could be covered by pydantic itself
+    #    -- the validation is then just up to pydantic too
+    #    -- only would need a ParseDict thingy that can build nested dictionaries
     if input is not None:
         input = merge_model_kwargs(model_cls, input)
         if validate is not None:
@@ -551,7 +635,7 @@ def parse_valuestr(val_str: str, modelfield: ModelField):
     """
     convertor = modelfield.type_
     if convertor == bool:
-        def boolconvertor(s): 
+        def boolconvertor(s):
             return len(s) > 0 and s.lower() in ('y', 'yes', '1', 'true', 'on')
         convertor = boolconvertor
     if modelfield.outer_type_.__name__ == 'List':
@@ -836,44 +920,55 @@ def get_arg_parser() -> ArgumentParser:
     add_id_argument(get_stream_ap, Stream)
     add_output_arguments(get_stream_ap)
     get_stream_ap.set_defaults(func=do_stream_get)
+    # -- stream getall
+    getall_stream_ap = stream_subs.add_parser('getall', help="dumps stream configuration json to stdout")
+    add_output_arguments(getall_stream_ap)
+    getall_stream_ap.set_defaults(func=do_stream_getall)
     # -- stream set
     set_stream_ap = stream_subs.add_parser('set', help="overwrites stream configuration with json input from stdin")
     add_id_argument(set_stream_ap, Stream)
     add_input_arguments(set_stream_ap, Stream)
-    set_stream_ap.set_defaults(func=do_placeholder)
+    set_stream_ap.set_defaults(func=do_stream_set)
     # -- stream new
     new_stream_ap = stream_subs.add_parser(
             'new', aliases=['make', 'create'],
             help="create a new stream based on the json input from stdin"
         )
     add_input_arguments(new_stream_ap, Stream)
-    new_stream_ap.set_defaults(func=do_placeholder)
+    new_stream_ap.set_defaults(func=do_stream_new)
     # -- stream del
     del_stream_ap = stream_subs.add_parser('delete', aliases=['del', 'rm'], help="deletes the specified stream")
     add_id_argument(del_stream_ap, Stream)
-    del_stream_ap.set_defaults(func=do_placeholder)
+    del_stream_ap.set_defaults(func=do_stream_del)
     # -- stream play
     play_stream_ap = stream_subs.add_parser('play', aliases=['pl'], help="plays the specified stream")
     add_id_argument(play_stream_ap, Stream)
-    play_stream_ap.set_defaults(func=do_placeholder)
+    play_stream_ap.set_defaults(func=do_stream_play)
     # -- stream pause
     pause_stream_ap = stream_subs.add_parser('pause', aliases=['ps'], help="pauses the specified stream")
     add_id_argument(pause_stream_ap, Stream)
-    pause_stream_ap.set_defaults(func=do_placeholder)
+    pause_stream_ap.set_defaults(func=do_stream_pause)
     # -- stream stop
     stop_stream_ap = stream_subs.add_parser('stop', aliases=['st'], help="stops the specified stream")
     add_id_argument(stop_stream_ap, Stream)
-    stop_stream_ap.set_defaults(func=do_placeholder)
+    stop_stream_ap.set_defaults(func=do_stream_stop)
     # -- stream next
     next_stream_ap = stream_subs.add_parser('next', aliases=['fwd', '»'], help="forwards the specified stream to next item")
     add_id_argument(next_stream_ap, Stream)
-    next_stream_ap.set_defaults(func=do_placeholder)
+    next_stream_ap.set_defaults(func=do_stream_next)
     # -- stream prev
     prev_stream_ap = stream_subs.add_parser(
         'previous', aliases=['prev', 'back', 'bwd', '«'],
         help="reverses the specified stream back to the previous item")
     add_id_argument(prev_stream_ap, Stream)
-    prev_stream_ap.set_defaults(func=do_placeholder)
+    prev_stream_ap.set_defaults(func=do_stream_prev)
+    # -- stream station change
+    station_stream_ap = stream_subs.add_parser(
+        'station', aliases=['pandora', 'stat'],
+        help="changes the pandora-stream to the station")
+    add_id_argument(station_stream_ap, Stream)
+    station_stream_ap.add_argument('station', action='store', type=int, help="pandora station id")
+    station_stream_ap.set_defaults(func=do_stream_stationchange)
 
     # details of the preset handling branch
     preset_subs = topic_preset_ap.add_subparsers(**action_supbarser_kwargs)
