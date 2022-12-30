@@ -18,7 +18,7 @@ from tabulate import tabulate
 from textwrap import indent
 import validators
 from .models import Status, Config, Info, Source, Zone, Group, Stream, Preset, Announcement, \
-    SourceUpdate, ZoneUpdate, MultiZoneUpdate, GroupUpdate, StreamUpdate
+    SourceUpdate, ZoneUpdate, MultiZoneUpdate, GroupUpdate, StreamUpdate, PresetUpdate
 from .amplipi import AmpliPi
 from .error import APIError
 
@@ -492,11 +492,45 @@ async def do_preset_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs
     write_out(preset.json(**json_ser_kwargs), args.outfile)
 
 
-# async def do_preset_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-# async def do_preset_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-# async def do_preset_load(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-# async def do_preset_new(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-# async def do_preset_del(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+async def do_preset_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Gets Presets json representation
+    """
+    log.debug("preset.getall()")
+    presets: List[Preset] = await amplipi.get_presets()
+    write_out(model_list_to_json(presets), args.outfile)
+
+
+async def do_preset_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Update a preset(id)'s configuration
+    """
+    log.debug(f"preset.set({args.presetid}, «stdin»)")
+    assert 0 <= args.presetid, "stream id must be > 0"
+    preset_update: PresetUpdate = instantiate_model(PresetUpdate, args.infile, args.input)
+    await amplipi.set_preset(args.presetid, preset_update)  # ignoring status return value
+
+
+async def do_preset_new(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Create a new preset
+    """
+    log.debug(f"preset.create(input={args.input if args.input is not None else '«stdin»'})")
+    preset: Preset = instantiate_model(Preset, args.infile)
+    await amplipi.create_preset(preset)  # ignoring status return value
+
+
+async def do_preset_del(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Delete the preset by presetid
+    """
+    log.debug(f"preset.delete({args.presetid})")
+    assert 0 <= args.presetid, "preset id must be > 0"
+    await amplipi.delete_preset(args.presetid)  # ignoring status return value
+
+
+async def do_preset_load(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Activate (load) the Preset by presetid
+    """
+    log.debug(f"preset.load({args.presetid})")
+    assert 0 <= args.presetid, "preset id must be > 0"
+    await amplipi.load_preset(args.presetid)  # ignoring status return value
 
 
 # -- announce section
@@ -927,7 +961,7 @@ def get_arg_parser() -> ArgumentParser:
     # -- stream set
     set_stream_ap = stream_subs.add_parser('set', help="overwrites stream configuration with json input from stdin")
     add_id_argument(set_stream_ap, Stream)
-    add_input_arguments(set_stream_ap, Stream)
+    add_input_arguments(set_stream_ap, StreamUpdate)
     set_stream_ap.set_defaults(func=do_stream_set)
     # -- stream new
     new_stream_ap = stream_subs.add_parser(
@@ -979,22 +1013,30 @@ def get_arg_parser() -> ArgumentParser:
     add_id_argument(get_preset_ap, Preset)
     add_output_arguments(get_preset_ap)
     get_preset_ap.set_defaults(func=do_preset_get)
+    # -- preset getall
+    getall_preset_ap = preset_subs.add_parser('getall', help="dumps preset configuration json to stdout")
+    add_output_arguments(getall_preset_ap)
+    getall_preset_ap.set_defaults(func=do_preset_getall)
     # -- preset set
     set_preset_ap = preset_subs.add_parser('set', help="overwrites preset configuration with json input from stdin")
     add_id_argument(set_preset_ap, Preset)
-    add_input_arguments(set_preset_ap, Preset)
-    set_preset_ap.set_defaults(func=do_placeholder)
+    add_input_arguments(set_preset_ap, PresetUpdate)
+    set_preset_ap.set_defaults(func=do_preset_set)
     # -- preset new
     new_preset_ap = preset_subs.add_parser(
             'new', aliases=['make', 'create'],
             help="create a new preset based on the json input from stdin"
         )
     add_input_arguments(new_preset_ap, Preset)
-    new_preset_ap.set_defaults(func=do_placeholder)
+    new_preset_ap.set_defaults(func=do_preset_new)
     # -- preset del
     del_preset_ap = preset_subs.add_parser('delete', aliases=['del', 'rm'], help="deletes the specified preset")
     add_id_argument(del_preset_ap, Preset)
-    del_preset_ap.set_defaults(func=do_placeholder)
+    del_preset_ap.set_defaults(func=do_preset_del)
+    # -- preset load
+    load_preset_ap = preset_subs.add_parser('load', aliases=['on', 'activate'], help="activates the specified preset")
+    add_id_argument(load_preset_ap, Preset)
+    load_preset_ap.set_defaults(func=do_preset_load)
 
     # details of the announce handling branch
     add_input_arguments(topic_announce_ap, Announcement)
