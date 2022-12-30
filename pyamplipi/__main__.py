@@ -18,7 +18,7 @@ from tabulate import tabulate
 from textwrap import indent
 import validators
 from .models import Status, Config, Info, Source, Zone, Group, Stream, Preset, Announcement, \
-    SourceUpdate
+    SourceUpdate, ZoneUpdate, MultiZoneUpdate
 from .amplipi import AmpliPi
 from .error import APIError
 
@@ -228,7 +228,7 @@ async def do_source_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs
 
 
 async def do_source_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-    """ Gets Sources json represenatation by source_id
+    """ Gets Sources json represenatation 
     """
     log.debug("source.getall()")
     sources: List[Source] = await amplipi.get_sources()
@@ -243,7 +243,7 @@ async def do_source_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs
 
     def validate(input: dict):
         log.debug(f"validating source_update kwargs: {input}")
-        assert any((input.get('name'), input.get('input'))), "no actual values to be set"
+        assert any(input.values()), "no actual source values to be set"
     src_update: SourceUpdate = instantiate_model(SourceUpdate, args.infile, args.input, validate)
     await amplipi.set_source(args.sourceid, src_update)  # ignoring status return value
 
@@ -274,9 +274,34 @@ async def do_zone_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     zone: Zone = await amplipi.get_zone(args.zoneid)
     write_out(zone.json(**json_ser_kwargs), args.outfile)
 
-# async def do_zone_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-# async def do_zone_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
-# async def do_zone_setall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+
+async def do_zone_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Gets Zones json represenatation
+    """
+    log.debug("zone.getall()")
+    zones: List[Zone] = await amplipi.get_zones()
+    write_out(model_list_to_json(zones), args.outfile)
+
+
+async def do_zone_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Update a zone(id)'s configuration
+    """
+    log.debug(f"zone.set({args.zoneid}, input={args.input if args.input is not None else '«stdin»'})")
+    assert 0 <= args.zoneid <= 35, "zone id must be in range 0..35"
+
+    def validate(input: dict):
+        log.debug(f"validating zone_update kwargs: {input}")
+        assert len(input.keys()) > 0, "no actual zone values to be set"
+    zone_update: ZoneUpdate = instantiate_model(ZoneUpdate, args.infile, args.input, validate)
+    await amplipi.set_zone(args.zoneid, zone_update)  # ignoring status return value
+
+
+async def do_zone_setall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
+    """ Update a bunch of zones (and groups) with the same configuration changes
+    """
+    log.debug("zone.setall(«stdin»)")
+    mzone_update: MultiZoneUpdate = instantiate_model(MultiZoneUpdate, args.infile)  # not supporting -i 
+    await amplipi.set_zones(mzone_update)  # ignoring status return value
 
 
 async def do_group_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
@@ -468,7 +493,9 @@ def merge_model_kwargs(model_cls: ModelMetaclass, input: dict):
     for name, modelfield in model_cls.__fields__.items():
         value_str: str = input.get(name, envvar(name))
         if value_str is not None and type(value_str) == str and len(value_str) > 0:
-            kwargs[name] = parse_valuestr(value_str, modelfield)
+            value = parse_valuestr(value_str, modelfield)
+            log.debug(f"converted {value_str} to {value} for {modelfield.type_}")
+            kwargs[name] = value
     return kwargs
 
 
@@ -478,6 +505,10 @@ def parse_valuestr(val_str: str, modelfield: ModelField):
     Supports simple types and lists of them
     """
     convertor = modelfield.type_
+    if convertor == bool:
+        def boolconvertor(s): 
+            return len(s) > 0 and s.lower() in ('y', 'yes', '1', 'true', 'on')
+        convertor = boolconvertor
     if modelfield.outer_type_.__name__ == 'List':
         assert val_str[0] == '[' and val_str[-1] == ']', "expected array-value needs to be surrounded with []"
         val_str = val_str[1:-1]
@@ -707,11 +738,19 @@ def get_arg_parser() -> ArgumentParser:
     add_id_argument(get_zone_ap, Zone)
     add_output_arguments(get_zone_ap)
     get_zone_ap.set_defaults(func=do_zone_get)
+    # -- zone getall
+    getall_zone_ap = zone_subs.add_parser('getall', help="dumps zone configuration json to stdout")
+    add_output_arguments(getall_zone_ap)
+    getall_zone_ap.set_defaults(func=do_zone_getall)
     # -- zone set
     set_zone_ap = zone_subs.add_parser('set', help="overwrites zone configuration with json input from stdin")
     add_id_argument(set_zone_ap, Zone)
-    add_input_arguments(set_zone_ap, Zone)
-    set_zone_ap.set_defaults(func=do_placeholder)
+    add_input_arguments(set_zone_ap, ZoneUpdate)
+    set_zone_ap.set_defaults(func=do_zone_set)
+    # -- zone setall
+    setall_zone_ap = zone_subs.add_parser('setall', help="overwrites zone configuration with json input from stdin")
+    add_input_arguments(setall_zone_ap, MultiZoneUpdate, too_complex_for_cli_keyvals=True)
+    setall_zone_ap.set_defaults(func=do_zone_setall)
 
     # details of the group handling branch
     group_subs = topic_group_ap.add_subparsers(**action_supbarser_kwargs)
