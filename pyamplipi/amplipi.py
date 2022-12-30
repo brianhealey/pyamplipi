@@ -120,37 +120,41 @@ class AmpliPi:
         response = await self._client.get(f'streams/{stream_id}')
         return Stream.parse_obj(response)
 
-    async def play_stream(self, stream_id: int) -> Stream:
+    async def play_stream(self, stream_id: int) -> Status:
         response = await self._client.post(f'streams/{stream_id}/play')
         return Status.parse_obj(response)
 
-    async def pause_stream(self, stream_id: int) -> Stream:
+    async def pause_stream(self, stream_id: int) -> Status:
         response = await self._client.post(f'streams/{stream_id}/pause')
         return Status.parse_obj(response)
 
-    async def previous_stream(self, stream_id: int) -> Stream:
+    async def previous_stream(self, stream_id: int) -> Status:
         response = await self._client.post(f'streams/{stream_id}/prev')
         return Status.parse_obj(response)
 
-    async def next_stream(self, stream_id: int) -> Stream:
+    async def next_stream(self, stream_id: int) -> Status:
         response = await self._client.post(f'streams/{stream_id}/next')
         return Status.parse_obj(response)
 
-    async def stop_stream(self, stream_id: int) -> Stream:
+    async def stop_stream(self, stream_id: int) -> Status:
         response = await self._client.post(f'streams/{stream_id}/stop')
         return Status.parse_obj(response)
 
+    async def station_change_stream(self, stream_id: int, station: int) -> Status:
+        response = await self._client.post(f'streams/{stream_id}/station={station}')
+        return Status.parse_obj(response)
+
     async def create_stream(self, new_stream: Stream) -> Stream:
-        response = await self._client.post('streams', new_stream.json(**json_ser_kwargs))
+        response = await self._client.post('stream', new_stream.json(**json_ser_kwargs))
         return Status.parse_obj(response)
 
     async def delete_stream(self, stream_id: int) -> Status:
         response = await self._client.delete(f'streams/{stream_id}')
         return Status.parse_obj(response)
 
-    async def set_stream(self, stream_id: int, update: StreamUpdate) -> Stream:
+    async def set_stream(self, stream_id: int, update: StreamUpdate) -> Status:
         response = await self._client.post(f'streams/{stream_id}', update.json(**json_ser_kwargs))
-        return Stream.parse_obj(response)
+        return Status.parse_obj(response)
 
     # -- preset calls
     async def get_presets(self) -> List[Preset]:
