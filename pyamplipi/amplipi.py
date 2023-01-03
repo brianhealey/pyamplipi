@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional, Dict, Any
 
 from aiohttp import ClientSession
 
@@ -8,15 +8,15 @@ from pyamplipi.models import Group, Stream, SourceUpdate, MultiZoneUpdate, ZoneU
     PresetUpdate
 
 
-json_ser_kwargs = dict(exclude_unset=True)
+json_ser_kwargs : Dict[str, Any] = dict(exclude_unset=True)
 
 
 class AmpliPi:
     def __init__(
             self,
             endpoint: str,
-            timeout: 10,
-            http_session: ClientSession = None,
+            timeout: int = 10,
+            http_session: Optional[ClientSession] = None,
             verify_ssl: bool = False,
             disable_insecure_warning: bool = True,
     ):
@@ -70,7 +70,7 @@ class AmpliPi:
         response = await self._client.patch(f'sources/{source_id}', source_update.json(**json_ser_kwargs))
         return Status.parse_obj(response)
 
-    async def get_source_img(self, source_id: int, height: int, outfile: str = None) -> None:
+    async def get_source_img(self, source_id: int, height: int, outfile: Optional[str] = None) -> None:
         await self._client.get(f'sources/{source_id}/image/{height}', expect_json=False, outfile=outfile)
         return None
 
@@ -146,7 +146,7 @@ class AmpliPi:
         response = await self._client.post(f'streams/{stream_id}/station={station}')
         return Status.parse_obj(response)
 
-    async def create_stream(self, new_stream: Stream) -> Stream:
+    async def create_stream(self, new_stream: Stream) -> Status:
         response = await self._client.post('stream', new_stream.json(**json_ser_kwargs))
         return Status.parse_obj(response)
 

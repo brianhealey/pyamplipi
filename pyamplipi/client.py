@@ -1,5 +1,6 @@
 from http.client import responses
 from json.decoder import JSONDecodeError
+from typing import Optional
 from urllib.parse import urljoin
 
 import requests
@@ -26,7 +27,7 @@ class Client(object):
             self,
             endpoint: str,
             timeout: int = 10,
-            http_session: ClientSession = None,
+            http_session: Optional[ClientSession] = None,
             verify_ssl: bool = False,
             disable_insecure_warning: bool = True,
     ) -> None:
@@ -88,7 +89,7 @@ class Client(object):
                 )
             )
 
-    async def _write_response(self, response: ClientResponse, outfile: str = None) -> None:
+    async def _write_response(self, response: ClientResponse, outfile: Optional[str] = None) -> None:
         if response.status >= 400:
             # API returned some sort of error that must be handled
             await self._handle_error(response)
@@ -98,9 +99,9 @@ class Client(object):
                 out.write(await response.read())
         else:
             ctype = response.headers.get('content-type')
-            if ctype.startswith('text/') or ctype in ('application/json', ):
+            if ctype is not None and (ctype.startswith('text/') or ctype in ('application/json', )):
                 print("we think it is ok to write ", ctype)
-                sys.stdout.write(await response.read())
+                sys.stdout.write((await response.read()).decode('utf-8'))
             else:
                 raise APIError(f"No output file provided. Content of type {ctype} will not be written to terminal/stdout")
 
@@ -175,7 +176,7 @@ class Client(object):
         ) as e:
             raise AmpliPiUnreachableError(e)
 
-    async def get(self, path: str, headers=None, expect_json: bool = True, outfile: str = None) -> dict:
+    async def get(self, path: str, headers=None, expect_json: bool = True, outfile: Optional[str] = None) -> dict:
         try:
             async with self._http_session.get(
                     url=self.url(path),

@@ -1,3 +1,5 @@
+from typing import Optional
+
 class AmpliPiError(Exception):
     def __init__(self, msg):
         super().__init__(msg)
@@ -9,7 +11,7 @@ class APIError(AmpliPiError):
 
 
 class MissingAttributeError(APIError):
-    def __init__(self, response: dict, attribute: str, url: str = None):
+    def __init__(self, response: dict, attribute: str, url: Optional[str] = None):
         self.response = response
         self.attribute = attribute
         self.url = url

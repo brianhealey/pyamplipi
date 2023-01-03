@@ -8,7 +8,7 @@ import yaml
 import datetime
 from dotenv import load_dotenv
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, Namespace, Action, ArgumentError
-from typing import List, Callable
+from typing import Optional, List, Callable, Sequence, Dict, Any
 from pydantic import BaseModel
 from pydantic.fields import ModelField
 from pydantic.main import ModelMetaclass
@@ -25,7 +25,7 @@ from .error import APIError
 
 # constants
 log = logging.getLogger(__name__)                     # central logging channel
-json_ser_kwargs = dict(exclude_unset=True, indent=2)  # arguments to serialise the json
+json_ser_kwargs: Dict[str, Any] = dict(exclude_unset=True, indent=2)  # arguments to serialise the json
 
 
 # text formatters
@@ -33,7 +33,7 @@ def em(msg: str) -> str: return f'\033[4m{msg}\033[0m'                          
 def table(d, h) -> str: return indent(tabulate(d, h, tablefmt='rounded_outline'), '  ')  # make a nice indented table
 
 
-def model_list_to_json(it: List[BaseModel]) -> str:     # simple list json for List[BaseModel] constructs
+def model_list_to_json(it: Sequence[BaseModel]) -> str:     # simple list json for List[BaseModel] constructs
     return f"[{','.join([i.json(**json_ser_kwargs) for i in it])}]"
 
 
@@ -45,7 +45,7 @@ def list_info(info: Info):
     data.append([
         info.config_file, info.version,
         info.mock_ctrl, info.mock_streams, info.online,
-        "/".join([f"{fw.version}{'*' if fw.git_dirty else ''}" for fw in info.fw]),
+        "/".join([f"{fw.version}{'*' if fw.git_dirty else ''}" for fw in info.fw]) if info.fw else None,
     ])
     print(table(data, headers))
 
@@ -53,7 +53,7 @@ def list_info(info: Info):
 def list_sources(sources: List[Source]):
     print(em(f"Sources[{len(sources)}]"))
     headers = ["ID", "Name", "Input", "Info", "State"]
-    data = [[s.id, s.name, s.input, s.info.name, s.info.state] for s in sources]
+    data = [[s.id, s.name, s.input, s.info.name if s.info else None, s.info.state if s.info else None] for s in sources]
     print(table(data, headers))
 
 
@@ -86,7 +86,8 @@ def list_presets(presets: List[Preset]):
 
 
 def list_status(status: Status):
-    list_info(status.info)
+    if status.info:
+        list_info(status.info)
     list_sources(status.sources)
     list_zones(status.zones)
     list_groups(status.groups)
@@ -105,10 +106,10 @@ def interactive_confirm(msg: str = 'This is not without danger.'):
 
 
 # helper io functions
-def read_in(infile: str = None) -> str:
+def read_in(infile: Optional[str] = None) -> str:
     """ Read input from infile (if not None) else from stdin
     """
-    json_str: str = None
+    json_str: Optional[str] = None
     if infile is None:
         json_str = sys.stdin.read()
     else:
@@ -117,7 +118,7 @@ def read_in(infile: str = None) -> str:
     return json_str
 
 
-def write_out(json_str: str, outfile: str = None):
+def write_out(json_str: str, outfile: Optional[str] = None):
     """ Write output to outfile (if not None) els to stdout
     """
     if outfile is None:
@@ -389,7 +390,7 @@ async def do_stream_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwa
     """ Gets Streams json represenatation
     """
     log.debug("stream.getall()")
-    streams: List[Stream] = await amplipi.get_stream(args.streamid)
+    streams: List[Stream] = await amplipi.get_streams()
     write_out(model_list_to_json(streams), args.outfile)
 
 
@@ -584,7 +585,7 @@ async def interactive_shell(amplipi: AmpliPi, argsparser: ArgumentParser):
     print("Entering shell mode - Use «ctrl» + «d» to finish.")
     prompt = "ampsh > "
     while True:                # read input
-        cmdline: str = None
+        cmdline: Optional[str] = None
         try:
             cmdline = input(prompt)
         except EOFError:       # triggered by ctrl-d
@@ -608,7 +609,7 @@ async def shell_cmd_exec(cmdline: str, amplipi: AmpliPi, argsparser: ArgumentPar
     try:  # to actually call the requested function
         cmdargs = argsparser.parse_args(cmdline.split())
         log.debug(f"cmdargs == {cmdargs}")
-        if cmdargs.func is not None and isinstance(cmdargs.func, Callable):
+        if cmdargs.func is not None and callable(cmdargs.func):
             await cmdargs.func(cmdargs, amplipi, shell=True)
             return
     except ArgumentError as e:
@@ -624,7 +625,7 @@ async def shell_cmd_exec(cmdline: str, amplipi: AmpliPi, argsparser: ArgumentPar
         print(e)
 
 
-def instantiate_model(model_cls: ModelMetaclass, infile: str, input: dict = None, validate: Callable = None):
+def instantiate_model(model_cls: ModelMetaclass, infile: str, _input: Optional[Dict[str, Any]] = None, validate: Optional[Callable] = None):
     """ Instatiates the passed BaseModel based on:
       (1) either the passed input dict (if not None) merged with env var defaults
       (2) either a json representation read from stdin
@@ -635,22 +636,22 @@ def instantiate_model(model_cls: ModelMetaclass, infile: str, input: dict = None
     #    -- more complex structures could be covered by pydantic itself
     #    -- the validation is then just up to pydantic too
     #    -- only would need a ParseDict thingy that can build nested dictionaries
-    if input is not None:
-        input = merge_model_kwargs(model_cls, input)
+    if _input is not None:
+        _input = merge_model_kwargs(model_cls, _input)
         if validate is not None:
-            validate(input)
-        return model_cls(**input)
+            validate(_input)
+        return model_cls(**_input)
     # else read the object from stdin (json)
     return model_cls.parse_obj(json.loads(read_in(infile)))
 
 
-def merge_model_kwargs(model_cls: ModelMetaclass, input: dict):
+def merge_model_kwargs(model_cls: ModelMetaclass, input: dict) -> Dict[str, Any]:
     """ Builds the kwargs needed to construct the passed BaseModel by merging the passed input dict
     with possible available environment variables with key following this pattern:
         "AMPLIPI_" + «name of BaseModel» + "_" + «name of field in BaseModel» (in all caps)
     """
     def envvar(name):
-        envkey: str = f"AMPLIPI_{model_cls.__name__}_{name}".upper()
+        envkey = f"AMPLIPI_{model_cls.__name__}_{name}".upper()
         return os.getenv(envkey)
     kwargs = dict()
     for name, modelfield in model_cls.__fields__.items():
@@ -831,7 +832,7 @@ def get_arg_parser() -> ArgumentParser:
         exit_on_error=False,
         help="enter into interactive shell mode")
 
-    action_supbarser_kwargs = dict(title='actions to perform', required=True, metavar="ACTION",)
+    action_supbarser_kwargs: Dict[str, Any] = dict(title='actions to perform', required=True, metavar="ACTION",)
 
     # details of the status handling branch
     status_subs = topic_status_ap.add_subparsers(**action_supbarser_kwargs)
