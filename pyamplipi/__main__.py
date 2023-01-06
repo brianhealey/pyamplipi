@@ -625,7 +625,8 @@ async def shell_cmd_exec(cmdline: str, amplipi: AmpliPi, argsparser: ArgumentPar
         print(e)
 
 
-def instantiate_model(model_cls: ModelMetaclass, infile: str, _input: Optional[Dict[str, Any]] = None, validate: Optional[Callable] = None):
+def instantiate_model(model_cls: ModelMetaclass, infile: str, _input: Optional[Dict[str, Any]] = None,
+                      validate: Optional[Callable] = None):
     """ Instatiates the passed BaseModel based on:
       (1) either the passed input dict (if not None) merged with env var defaults
       (2) either a json representation read from stdin
@@ -641,8 +642,8 @@ def instantiate_model(model_cls: ModelMetaclass, infile: str, _input: Optional[D
         if validate is not None:
             validate(_input)
         return model_cls(**_input)
-    # else read the object from stdin (json)
-    return model_cls.parse_obj(json.loads(read_in(infile)))
+    #  else read the object from stdin (json)
+    return model_cls.parse_obj(json.loads(read_in(infile)))  # type: ignore
 
 
 def merge_model_kwargs(model_cls: ModelMetaclass, input: dict) -> Dict[str, Any]:
@@ -654,7 +655,7 @@ def merge_model_kwargs(model_cls: ModelMetaclass, input: dict) -> Dict[str, Any]
         envkey = f"AMPLIPI_{model_cls.__name__}_{name}".upper()
         return os.getenv(envkey)
     kwargs = dict()
-    for name, modelfield in model_cls.__fields__.items():
+    for name, modelfield in model_cls.__fields__.items():  # type: ignore
         value_str: str = input.get(name, envvar(name))
         if value_str is not None and type(value_str) == str and len(value_str) > 0:
             value = parse_valuestr(value_str, modelfield)
@@ -731,12 +732,13 @@ def add_input_arguments(ap: ArgumentParser, model_cls: ModelMetaclass, too_compl
     if too_complex_for_cli_keyvals:
         return
     # else allow key-val --input
+    fields = model_cls.__fields__.keys()  # type: ignore
     ap.add_argument(
         '--input', '-i',
         action=ParseDict,
         metavar="KEY=VALUE",
         nargs="*",
-        help=f"Set any of the fields ({', '.join(model_cls.__fields__.keys())}) to the {model_cls.__name__} object inline."
+        help=f"Set any of the fields ({', '.join(fields)}) to the {model_cls.__name__} object inline."
         " (do not put spaces before or after the = sign). "
         " Use double quotes to let values have spaces."
         ' foo="this is a sentence".'
@@ -1094,7 +1096,7 @@ def main():
     exitcode = 0  # assuming all will be well
     load_dotenv()
     ap = get_arg_parser()
-    args: Namespace = None
+    args: Optional[Namespace] = None
     try:
         args = ap.parse_args()
     except ArgumentError as e:  # manual error handling as per https://docs.python.org/3/library/argparse.html#exit-on-error

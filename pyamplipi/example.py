@@ -18,11 +18,12 @@ async def get_status():
     )
     result = await amp.get_status()
     source = result.sources.pop()
-    update = await amp.set_source(source.id, SourceUpdate(
-        mute=not source.mute,
-        vol_delta=.01
-    ))
-    _LOGGER.info(update)
+    stream = result.streams.pop()
+    if source.id is not None and stream is not None and stream.id is not None:
+        update = await amp.set_source(source.id, SourceUpdate(
+            input=f'stream{stream.id}'
+        ))
+        _LOGGER.info(update)
     await amp.close()
 
 

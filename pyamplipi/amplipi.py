@@ -8,7 +8,7 @@ from pyamplipi.models import Group, Stream, SourceUpdate, MultiZoneUpdate, ZoneU
     PresetUpdate
 
 
-json_ser_kwargs : Dict[str, Any] = dict(exclude_unset=True)
+json_ser_kwargs: Dict[str, Any] = dict(exclude_unset=True)
 
 
 class AmpliPi:
