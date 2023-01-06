@@ -21,13 +21,14 @@ init:
 
 init-dev: init
 	@pip install -e .[dev]
-
+	@mypy pyamplipi --install-types --non-interactive
 test:
 	@${PYTHON} -m pytest ${TEST_PATH} --disable-warnings
 
 check:
 	@${PYTHON} -m flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude ${FLAKE8_EXCLUDE}
 	@${PYTHON} -m flake8 . --count --exit-zero --max-complexity=10 --max-line-length=132 --statistics --exclude ${FLAKE8_EXCLUDE}
+	@mypy pyamplipi --check-untyped-defs
 
 build:
 	@${PYTHON} setup.py build
