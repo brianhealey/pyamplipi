@@ -1,0 +1,23 @@
+# INSTRUCTIONS:
+#    - save/copy this example file under the name .env
+#    - uncomment the environment variable assignments and change their values 
+#      to match your local environment
+# --------------------------------------------------------------------------------------------------------------------------------
+# local .env file allows to set recurring base values for the API client
+
+# define logconf
+# LOGCONF=debug-logconf.yml
+
+# sets the api_uri default for the -a switch
+# AMPLIPI_API_URL="http://amplipi.local:5000/api"
+
+# sets the timeout default for the -t switch
+# AMPLIPI_TIMEOUT=10
+
+# sets the default arguments for the announce action
+# AMPLIPI_ANNOUNCEMENT_MEDIA="https://www.nasa.gov/mp3/640149main_Computers%20are%20in%20Control.mp3" 
+# AMPLIPI_ANNOUNCEMENT_VOL_F=0.5                   # float between 0.0 and 1.0
+# AMPLIPI_ANNOUNCEMENT_VOL=                        # int between -80 and 0
+# AMPLIPI_ANNOUNCEMENT_SOURCE_ID                   # 0..3 source id
+# AMPLIPI_ANNOUNCEMENT_ZONES
+# AMPLIPI_ANNOUNCEMENT_GROUPS

@@ -3,7 +3,8 @@
 import os
 import sys
 
-VERSION = '0.4.9'
+VERSION = '0.4.10-dev'
+NAME = 'pyamplipi'
 
 try:
     from setuptools import setup
@@ -20,6 +21,7 @@ def required(sfx=''):
     reqs = []
     with open(f"requirements{sfx}.txt") as f:
         reqs = [ln.strip() for ln in f.readlines() if not ln.startswith('-') and not ln.startswith('#') and ln.strip() != '']
+    return reqs
 
 
 license = """
@@ -37,17 +39,25 @@ license = """
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-setup(name='pyamplipi',
-      version=VERSION,
-      description='Python API for interacting with the AmpliPi Multizone Audio Controller',
-      url='https://github.com/brianhealey/pyamplipi',
-      download_url='https://github.com/brianhealey/pyamplipi/archive/{}.tar.gz'.format(VERSION),
-      author='HeeHee Software',
-      author_email='brian.healey@gmail.com',
-      license='GPL',
-      install_requires=required(),
-      packages=['pyamplipi'],
-      classifiers=['Development Status :: 4 - Beta',
-                   'Programming Language :: Python :: 3.5',
-                   'Programming Language :: Python :: 3.6'],
-      zip_safe=True)
+console_scripts = [f'{NAME} = {NAME}.__main__:main']
+
+setup(
+    name=NAME,
+    version=VERSION,
+    description='Python API for interacting with the AmpliPi Multizone Audio Controller',
+    url='https://github.com/brianhealey/pyamplipi',
+    download_url='https://github.com/brianhealey/pyamplipi/archive/{}.tar.gz'.format(VERSION),
+    author='HeeHee Software',
+    author_email='brian.healey@gmail.com',
+    license='GPL',
+    install_requires=required(),
+    extras_require=dict(
+        dev=required('-dev')
+    ),
+    entry_points=dict(console_scripts=console_scripts),
+    packages=['pyamplipi'],
+    classifiers=['Development Status :: 4 - Beta',
+                 'Programming Language :: Python :: 3.5',
+                 'Programming Language :: Python :: 3.6'],
+    zip_safe=True,
+)

@@ -32,6 +32,7 @@ class SourceUpdate(BaseModel):
     name: Optional[str]
     input: Optional[str]  # 'None', 'local', 'stream=ID'
 
+
 class SourceUpdateWithId(SourceUpdate):
     """ Partial reconfiguration of a specific audio Source """
     id: int
@@ -168,10 +169,16 @@ class PresetUpdate(BaseModel):
 class Announcement(BaseModel):
     media: str
     vol: Optional[int]
-    vol_f: float
-    source_id: int
+    vol_f: Optional[float]
+    source_id: Optional[int]
     zones: Optional[List[int]]
     groups: Optional[List[int]]
+
+
+class FirmwareInfo(BaseModel):
+    version: Optional[str]
+    git_hash: Optional[str]
+    git_dirty: Optional[bool]
 
 
 class Info(BaseModel):
@@ -179,14 +186,20 @@ class Info(BaseModel):
     version: str = 'Unknown'
     mock_ctrl: bool = False
     mock_streams: bool = False
+    online: Optional[bool] = True
+    latest_release: Optional[str]
+    fw: Optional[List[FirmwareInfo]]
 
 
-class Status(BaseModel):
+class Config(BaseModel):
     sources: List[Source] = []
     zones: List[Zone] = []
     groups: List[Group] = []
     streams: List[Stream] = []
     presets: List[Preset] = []
+
+
+class Status(Config):
     info: Optional[Info]
 
 
