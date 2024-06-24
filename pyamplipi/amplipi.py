@@ -5,7 +5,7 @@ from aiohttp import ClientSession
 from pyamplipi.client import Client
 from pyamplipi.models import Group, Stream, SourceUpdate, MultiZoneUpdate, ZoneUpdate, \
     GroupUpdate, StreamUpdate, Announcement, Status, Config, Info, Source, Zone, Preset, \
-    PresetUpdate
+    PresetUpdate, PlayMedia
 
 
 json_ser_kwargs: Dict[str, Any] = dict(exclude_unset=True)
@@ -186,6 +186,11 @@ class AmpliPi:
     # -- anounce call
     async def announce(self, announcement: Announcement) -> Status:
         response = await self._client.post('announce', announcement.json(**json_ser_kwargs))
+        return Status.parse_obj(response)
+    
+    # -- play media call
+    async def play_media(self, media: PlayMedia) -> Status:
+        response = await self._client.post('play', media.json(**json_ser_kwargs))
         return Status.parse_obj(response)
 
     # -- client control
