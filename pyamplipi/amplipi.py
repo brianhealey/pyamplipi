@@ -190,8 +190,34 @@ class AmpliPi:
     
     # -- play media call
     async def play_media(self, media: PlayMedia) -> Status:
-        response = await self._client.post('play', media.json(**json_ser_kwargs))
-        return Status.parse_obj(response)
+        info = await self.get_info()
+        version_raw = info.version
+        print(version_raw)
+        
+        version_nums = []
+        tmp = 0
+        for ch in version_raw:
+            if ch.isdigit():
+                tmp = (tmp*10) + int(ch)
+            else:
+                version_nums.append(tmp)
+                tmp = 0
+        version_nums.append(tmp)
+
+        major = version_nums[0]
+        minor = version_nums[1]
+        revision = version_nums[2]
+
+        print(f'MAJOR: {major} | MINOR: {minor} | REVISION: {revision}')
+
+        if major <= 0 and (minor < 4 or (minor == 4 and revision < 1)):  # OLD, USE ANNOUNCEMENT
+            announce = Announcement(media=media.media,
+                                    source_id=media.source_id)
+            response = await self._client.post('announce', announce.json(**json_ser_kwargs))
+            return Status.parse_obj(response)
+        else:
+            response = await self._client.post('play', media.json(**json_ser_kwargs))
+            return Status.parse_obj(response)
 
     # -- client control
     async def close(self):
