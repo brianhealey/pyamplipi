@@ -199,10 +199,7 @@ class AmpliPi:
                 tmp = 0
         version_nums.append(tmp)
 
-        major = version_nums[0]
-        minor = version_nums[1]
-        revision = version_nums[2]
-        return major, minor, revision
+        return tuple(version_nums[:3])
 
     # -- play media call
     async def play_media(self, media: PlayMedia) -> Status:
