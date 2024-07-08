@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Tuple
 
 from aiohttp import ClientSession
 
@@ -10,6 +10,8 @@ from pyamplipi.models import Group, Stream, SourceUpdate, MultiZoneUpdate, ZoneU
 
 json_ser_kwargs: Dict[str, Any] = dict(exclude_unset=True)
 
+# play_media functionality added in 0.4.1
+MIN_MEDIA_PLAYER_VERSION = (0, 4, 1)
 
 class AmpliPi:
     def __init__(
@@ -27,6 +29,7 @@ class AmpliPi:
             verify_ssl,
             disable_insecure_warning,
         )
+        self.version: Optional[Tuple[int]] = None
 
     # -- status calls
     async def get_status(self) -> Status:
@@ -188,7 +191,12 @@ class AmpliPi:
         response = await self._client.post('announce', announcement.json(**json_ser_kwargs))
         return Status.parse_obj(response)
     
-    def get_version(self, version_raw: str):
+    async def get_version(self):
+        if self.version is not None:
+            return self.version
+
+        info = await self.get_info()
+        version_raw = info.version
         version_nums = []
         tmp = 0
         for ch in version_raw:
@@ -198,16 +206,13 @@ class AmpliPi:
                 version_nums.append(tmp)
                 tmp = 0
         version_nums.append(tmp)
-
-        return tuple(version_nums[:3])
+        self.version = tuple(version_nums[:3])
+        return self.version
 
     # -- play media call
     async def play_media(self, media: PlayMedia) -> Status:
-        info = await self.get_info()
-        version_raw = info.version
-        major, minor, revision = self.get_version(version_raw)
-
-        if major <= 0 and (minor < 4 or (minor == 4 and revision < 1)):  # OLD, USE ANNOUNCEMENT
+        version = await self.get_version()
+        if version < MIN_MEDIA_PLAYER_VERSION:  # TOO OLD, USE ANNOUNCEMENT
             announce = Announcement(media=media.media,
                                     source_id=media.source_id)
             response = await self._client.post('announce', announce.json(**json_ser_kwargs))
