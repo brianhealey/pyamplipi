@@ -178,7 +178,7 @@ class PlayMedia(BaseModel):
     media: str
     vol: Optional[int]
     vol_f: Optional[float]
-    source_id: Optional[int]
+    source_id: int
 
 
 class FirmwareInfo(BaseModel):
