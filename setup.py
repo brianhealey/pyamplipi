@@ -3,7 +3,7 @@
 import os
 import sys
 
-VERSION = '0.4.10-dev'
+VERSION = '0.4.10'
 NAME = 'pyamplipi'
 
 try:
