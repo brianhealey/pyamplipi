@@ -184,8 +184,8 @@ class AmpliPi:
         return Status.parse_obj(response)
 
     # -- anounce call
-    async def announce(self, announcement: Announcement) -> Status:
-        response = await self._client.post('announce', announcement.json(**json_ser_kwargs))
+    async def announce(self, announcement: Announcement, timeout: int = None) -> Status:
+        response = await self._client.post('announce', announcement.json(**json_ser_kwargs), timeout=timeout)
         return Status.parse_obj(response)
 
     # -- client control

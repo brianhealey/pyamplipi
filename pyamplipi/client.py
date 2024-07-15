@@ -40,6 +40,9 @@ class Client(object):
         self._http_session = http_session if http_session else ClientSession()
         self._http_session.verify = verify_ssl
 
+    def _timeout_or_self(self, timeout: Optional[int] = None) -> int:
+        return timeout if timeout is not None else self._timeout
+
     @staticmethod
     def _parse_endpoint(endpoint: str) -> str:
 
@@ -161,12 +164,12 @@ class Client(object):
         ) as e:
             raise AmpliPiUnreachableError(e)
 
-    async def post(self, path: str, body=None, headers=None) -> dict:
+    async def post(self, path: str, body=None, headers=None, timeout=None) -> dict:
         try:
             async with self._http_session.post(
                     url=self.url(path),
                     data=body,
-                    timeout=self._timeout,
+                    timeout=self._timeout_or_self(timeout),
                     headers=headers_or_default(headers),
             ) as response:
                 return await self._process_response(response)
