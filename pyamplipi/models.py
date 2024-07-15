@@ -174,6 +174,12 @@ class Announcement(BaseModel):
     zones: Optional[List[int]]
     groups: Optional[List[int]]
 
+class PlayMedia(BaseModel):
+    media: str
+    vol: Optional[int]
+    vol_f: Optional[float]
+    source_id: Optional[int]
+
 
 class FirmwareInfo(BaseModel):
     version: Optional[str]
