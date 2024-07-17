@@ -3,7 +3,7 @@
 import os
 import sys
 
-VERSION = '0.4.10'
+VERSION = '0.4.11'
 NAME = 'pyamplipi'
 
 try:
@@ -20,7 +20,8 @@ def required(sfx=''):
     """ Load the requirements from the requirements.txt file"""
     reqs = []
     with open(f"requirements{sfx}.txt") as f:
-        reqs = [ln.strip() for ln in f.readlines() if not ln.startswith('-') and not ln.startswith('#') and ln.strip() != '']
+        reqs = [ln.strip() for ln in f.readlines() if not ln.startswith(
+            '-') and not ln.startswith('#') and ln.strip() != '']
     return reqs
 
 
@@ -46,7 +47,8 @@ setup(
     version=VERSION,
     description='Python API for interacting with the AmpliPi Multizone Audio Controller',
     url='https://github.com/brianhealey/pyamplipi',
-    download_url='https://github.com/brianhealey/pyamplipi/archive/{}.tar.gz'.format(VERSION),
+    download_url='https://github.com/brianhealey/pyamplipi/archive/{}.tar.gz'.format(
+        VERSION),
     author='HeeHee Software',
     author_email='brian.healey@gmail.com',
     license='GPL',
