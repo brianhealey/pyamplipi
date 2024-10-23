@@ -13,6 +13,14 @@ from .error import AccessDeniedError, APIError, AmpliPiUnreachableError
 
 
 def headers_or_default(headers=None):
+    """Create default headers for API requests or use provided headers.
+
+    Args:
+        headers (dict, optional): Custom headers to use. Defaults to None.
+
+    Returns:
+        dict: Headers dictionary with content type and user agent set if none provided.
+    """
     if headers is None:
         return {
             'Accept-Content': 'application/json',
@@ -22,7 +30,32 @@ def headers_or_default(headers=None):
     return headers
 
 
-class Client(object):
+class Client:
+    """Async HTTP client for interacting with the AmpliPi streaming device API.
+
+    This client handles all HTTP communication with an AmpliPi device, including
+    authentication, request formatting, and error handling.
+
+    Attributes:
+        _endpoint (str): Base URL of the AmpliPi API
+        _timeout (int): Default timeout for API requests in seconds
+        _http_session (ClientSession): aiohttp session for making requests
+
+    Args:
+        endpoint (str): Base URL of the AmpliPi device API
+        timeout (int, optional): Request timeout in seconds. Defaults to 10.
+        http_session (ClientSession, optional): Existing aiohttp session to use. Defaults to None.
+        verify_ssl (bool, optional): Whether to verify SSL certificates. Defaults to False.
+        disable_insecure_warning (bool, optional): Whether to disable SSL warning messages. Defaults to True.
+
+    Example:
+        ```python
+        client = Client("http://amplipi.local")
+        response = await client.get("status")
+        await client.close()
+        ```
+    """
+
     def __init__(
             self,
             endpoint: str,
@@ -31,7 +64,6 @@ class Client(object):
             verify_ssl: bool = False,
             disable_insecure_warning: bool = True,
     ) -> None:
-
         if disable_insecure_warning:
             disable_warnings(InsecureRequestWarning)
 
@@ -41,11 +73,28 @@ class Client(object):
         self._http_session.verify = verify_ssl
 
     def _timeout_or_self(self, timeout: Optional[int] = None) -> int:
+        """Get the appropriate timeout value.
+
+        Args:
+            timeout (int, optional): Specific timeout value to use. Defaults to None.
+
+        Returns:
+            int: The provided timeout value or the default client timeout.
+        """
         return timeout if timeout is not None else self._timeout
 
     @staticmethod
     def _parse_endpoint(endpoint: str) -> str:
+        """Ensure the API endpoint URL is properly formatted.
 
+        Adds '/api/' to the endpoint URL if not already present.
+
+        Args:
+            endpoint (str): Base URL of the AmpliPi device
+
+        Returns:
+            str: Properly formatted API endpoint URL
+        """
         if not endpoint.endswith("api") and not endpoint.endswith("/"):
             endpoint += "/api/"
         elif endpoint.endswith("api"):
@@ -57,13 +106,21 @@ class Client(object):
 
     @staticmethod
     async def _handle_error(response: ClientResponse) -> None:
+        """Handle error responses from the API.
+
+        Args:
+            response (ClientResponse): The error response from the API
+
+        Raises:
+            APIError: For general API errors including 404
+            AccessDeniedError: For authentication/authorization errors (401/403)
+        """
         if response.status == 404:
             raise APIError(
                 "The url {} returned error 404".format(response.url)
             )
 
         if response.status == 401 or response.status == 403:
-
             try:
                 response_json = await response.json()
             except Exception:
@@ -93,8 +150,16 @@ class Client(object):
             )
 
     async def _write_response(self, response: ClientResponse, outfile: Optional[str] = None) -> None:
+        """Write API response to a file or stdout.
+
+        Args:
+            response (ClientResponse): The API response to write
+            outfile (str, optional): Path to output file. If None, writes to stdout. Defaults to None.
+
+        Raises:
+            APIError: If response indicates an error or if binary content would be written to stdout
+        """
         if response.status >= 400:
-            # API returned some sort of error that must be handled
             await self._handle_error(response)
 
         if outfile:
@@ -109,9 +174,18 @@ class Client(object):
                 raise APIError(f"No output file provided. Content of type {ctype} will not be written to terminal/stdout")
 
     async def _process_response(self, response: ClientResponse) -> dict:
+        """Process JSON response from the API.
 
+        Args:
+            response (ClientResponse): The API response to process
+
+        Returns:
+            dict: Parsed JSON response data
+
+        Raises:
+            APIError: If response indicates an error or JSON parsing fails
+        """
         if response.status >= 400:
-            # API returned some sort of error that must be handled
             await self._handle_error(response)
 
         try:
@@ -131,10 +205,31 @@ class Client(object):
 
         return response_json
 
-    def url(self, path: str):
+    def url(self, path: str) -> str:
+        """Build a full API URL from a path.
+
+        Args:
+            path (str): API endpoint path
+
+        Returns:
+            str: Complete API URL
+        """
         return urljoin(self._endpoint, path)
 
     async def delete(self, path: str, body=None, headers=None) -> dict:
+        """Send DELETE request to the API.
+
+        Args:
+            path (str): API endpoint path
+            body (Any, optional): Request body data. Defaults to None.
+            headers (dict, optional): Custom request headers. Defaults to None.
+
+        Returns:
+            dict: Parsed JSON response data
+
+        Raises:
+            AmpliPiUnreachableError: If connection fails
+        """
         try:
             async with self._http_session.delete(
                     url=self.url(path),
@@ -150,6 +245,19 @@ class Client(object):
             raise AmpliPiUnreachableError(e)
 
     async def patch(self, path: str, body=None, headers=None) -> dict:
+        """Send PATCH request to the API.
+
+        Args:
+            path (str): API endpoint path
+            body (Any, optional): Request body data. Defaults to None.
+            headers (dict, optional): Custom request headers. Defaults to None.
+
+        Returns:
+            dict: Parsed JSON response data
+
+        Raises:
+            AmpliPiUnreachableError: If connection fails
+        """
         try:
             async with self._http_session.patch(
                     url=self.url(path),
@@ -165,6 +273,20 @@ class Client(object):
             raise AmpliPiUnreachableError(e)
 
     async def post(self, path: str, body=None, headers=None, timeout=None) -> dict:
+        """Send POST request to the API.
+
+        Args:
+            path (str): API endpoint path
+            body (Any, optional): Request body data. Defaults to None.
+            headers (dict, optional): Custom request headers. Defaults to None.
+            timeout (int, optional): Request timeout override. Defaults to None.
+
+        Returns:
+            dict: Parsed JSON response data
+
+        Raises:
+            AmpliPiUnreachableError: If connection fails
+        """
         try:
             async with self._http_session.post(
                     url=self.url(path),
@@ -180,6 +302,20 @@ class Client(object):
             raise AmpliPiUnreachableError(e)
 
     async def get(self, path: str, headers=None, expect_json: bool = True, outfile: Optional[str] = None) -> dict:
+        """Send GET request to the API.
+
+        Args:
+            path (str): API endpoint path
+            headers (dict, optional): Custom request headers. Defaults to None.
+            expect_json (bool, optional): Whether to expect and parse JSON response. Defaults to True.
+            outfile (str, optional): Path to save response content. Defaults to None.
+
+        Returns:
+            dict: Parsed JSON response data if expect_json=True, empty dict otherwise
+
+        Raises:
+            AmpliPiUnreachableError: If connection fails
+        """
         try:
             async with self._http_session.get(
                     url=self.url(path),
@@ -188,7 +324,6 @@ class Client(object):
             ) as response:
                 if expect_json:
                     return await self._process_response(response)
-                # else
                 await self._write_response(response, outfile)
                 return {}
         except (
@@ -198,6 +333,9 @@ class Client(object):
             raise AmpliPiUnreachableError(e)
 
     async def close(self):
-        # Close the HTTP Session
-        # THis method is required for testing, so python doesn't complain about unclosed resources
+        """Close the HTTP session.
+
+        This should be called when the client is no longer needed to clean up resources.
+        Required for testing to avoid warnings about unclosed resources.
+        """
         await self._http_session.close()
