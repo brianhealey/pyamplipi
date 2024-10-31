@@ -533,7 +533,7 @@ class AmpliPi:
         return Status.parse_obj(response)
 
     # -- anounce call
-    async def announce(self, announcement: Announcement, timeout: int = None) -> Status:
+    async def announce(self, announcement: Announcement, timeout: Optional[int] = None) -> Status:
         """
         Announce a message using the AmpliPi system.
 

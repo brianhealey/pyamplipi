@@ -3,7 +3,7 @@ PYTHON = python3
 TEST_PATH = ./tests/
 FLAKE8_EXCLUDE = venv,.venv,.eggs,.tox,.git,__pycache__,*.pyc
 
-.PHONY: clean init init-de test check build
+.PHONY: clean init init-dev test check build docs
 
 clean:
 	@find . -name '*.pyc' -exec rm --force {} +
@@ -14,6 +14,7 @@ clean:
 	@rm -rf *.egg-info
 	@rm -f *.sqlite
 	@rm -rf .cache
+	@rm -rf docs/_build
 
 init:
 	@pip install --upgrade pip
@@ -32,3 +33,7 @@ check:
 
 build:
 	@${PYTHON} setup.py build
+
+docs:
+	@cd docs && sphinx-apidoc -o . ../pyamplipi -f
+	@$(MAKE) -C docs html

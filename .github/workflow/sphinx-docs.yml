@@ -32,11 +32,7 @@ jobs:
 
       - name: Build documentation
         run: |
-          cd docs
-          # Generate API documentation
-          sphinx-apidoc -o . ../pyamplipi -f
-          # Build HTML docs
-          make html
+          make docs
           touch _build/html/.nojekyll
 
       - name: Deploy to GitHub Pages
