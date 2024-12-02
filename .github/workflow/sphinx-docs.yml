@@ -37,7 +37,7 @@ jobs:
           touch _build/html/.nojekyll
 
       - name: Deploy to GitHub Pages
-        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch) && github.ref == 'refs/heads/main'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: docs/_build/html
