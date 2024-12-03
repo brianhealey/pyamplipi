@@ -43,7 +43,7 @@ class AmpliPi:
             verify_ssl,
             disable_insecure_warning,
         )
-        self.version: Optional[Tuple[int]] = None
+        self.version: Optional[Tuple[int, ...]] = None
 
     # -- status calls
     async def get_status(self) -> Status:
@@ -124,7 +124,7 @@ class AmpliPi:
         Get the current version of the AmpliPi system.
 
         Returns:
-            Tuple[int]: A tuple representing the version number.
+            Tuple[int, ...]: A tuple representing the version number.
         """
         if self.version is not None:
             return self.version
@@ -577,4 +577,3 @@ class AmpliPi:
             None
         """
         await self._client.close()
-

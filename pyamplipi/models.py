@@ -29,8 +29,8 @@ class Source(BaseModel):
 
 class SourceUpdate(BaseModel):
     """ Partial reconfiguration of an audio Source """
-    name: Optional[str]
-    input: Optional[str]  # 'None', 'local', 'stream=ID'
+    name: Optional[str] = None
+    input: Optional[str] = None  # 'None', 'local', 'stream=ID'
 
 
 class SourceUpdateWithId(SourceUpdate):
@@ -173,6 +173,7 @@ class Announcement(BaseModel):
     source_id: Optional[int] = None
     zones: Optional[List[int]] = None
     groups: Optional[List[int]] = None
+
 
 class PlayMedia(BaseModel):
     media: str

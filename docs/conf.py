@@ -8,12 +8,12 @@ copyright = '2024'
 author = 'brianhealey, linknum23, mjustian'
 
 extensions = [
-    'sphinx.ext.autodoc',    # Core extension for API documentation
-    'sphinx.ext.napoleon',   # Support for Google and NumPy style docstrings
-    'sphinx.ext.viewcode',   # Add links to highlighted source code
-    'sphinx.ext.intersphinx',# Link to other project's documentation
-    'sphinx.ext.autosummary',# Generate summary tables
-    'myst_parser',          # Support Markdown files
+    'sphinx.ext.autodoc',      # Core extension for API documentation
+    'sphinx.ext.napoleon',     # Support for Google and NumPy style docstrings
+    'sphinx.ext.viewcode',     # Add links to highlighted source code
+    'sphinx.ext.intersphinx',  # Link to other project's documentation
+    'sphinx.ext.autosummary',  # Generate summary tables
+    'myst_parser',             # Support Markdown files
 ]
 
 # Theme configuration

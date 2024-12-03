@@ -657,7 +657,7 @@ def merge_model_kwargs(model_cls: ModelMetaclass, input: dict) -> Dict[str, Any]
     kwargs = dict()
     for name, modelfield in model_cls.__fields__.items():  # type: ignore
         value_str: str = input.get(name, envvar(name))
-        if value_str is not None and type(value_str) == str and len(value_str) > 0:
+        if value_str is not None and isinstance(value_str, str) and len(value_str) > 0:
             value = parse_valuestr(value_str, modelfield)
             log.debug(f"converted {value_str} to {value} for {modelfield.type_}")
             kwargs[name] = value
