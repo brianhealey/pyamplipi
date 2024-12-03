@@ -4,3 +4,6 @@ mypy>=0.991
 sphinx>=5.3.0
 sphinx-rtd-theme>=2.0.0
 myst-parser>=1.0.0
+types-PyYAML
+types-requests
+types-tabulate
