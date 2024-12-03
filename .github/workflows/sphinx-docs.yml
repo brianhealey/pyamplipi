@@ -33,7 +33,7 @@ jobs:
       - name: Build documentation
         run: |
           make docs
-          touch _build/html/.nojekyll
+          touch docs/_build/html/.nojekyll
 
       - name: Deploy to GitHub Pages
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
