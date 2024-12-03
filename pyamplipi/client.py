@@ -5,7 +5,7 @@ from urllib.parse import urljoin
 
 import requests
 import sys
-from aiohttp import ClientSession, ClientResponse
+from aiohttp import ClientSession, ClientResponse, ClientTimeout
 from urllib3 import disable_warnings
 from urllib3.exceptions import InsecureRequestWarning
 
@@ -234,7 +234,7 @@ class Client:
             async with self._http_session.delete(
                     url=self.url(path),
                     data=body,
-                    timeout=self._timeout,
+                    timeout=ClientTimeout(total=self._timeout),
                     headers=headers_or_default(headers),
             ) as response:
                 return await self._process_response(response)
@@ -262,7 +262,7 @@ class Client:
             async with self._http_session.patch(
                     url=self.url(path),
                     data=body,
-                    timeout=self._timeout,
+                    timeout=ClientTimeout(total=self._timeout),
                     headers=headers_or_default(headers),
             ) as response:
                 return await self._process_response(response)
@@ -291,7 +291,7 @@ class Client:
             async with self._http_session.post(
                     url=self.url(path),
                     data=body,
-                    timeout=self._timeout_or_self(timeout),
+                    timeout=ClientTimeout(total=self._timeout_or_self(timeout)),
                     headers=headers_or_default(headers),
             ) as response:
                 return await self._process_response(response)
@@ -319,7 +319,7 @@ class Client:
         try:
             async with self._http_session.get(
                     url=self.url(path),
-                    timeout=self._timeout,
+                    timeout=ClientTimeout(total=self._timeout),
                     headers=headers_or_default(headers),
             ) as response:
                 if expect_json:
