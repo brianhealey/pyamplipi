@@ -25,27 +25,35 @@ from .error import APIError
 
 # constants
 log = logging.getLogger(__name__)                     # central logging channel
-json_ser_kwargs: Dict[str, Any] = dict(exclude_unset=True, indent=2)  # arguments to serialise the json
+json_ser_kwargs: Dict[str, Any] = dict(
+    exclude_unset=True, indent=2)  # arguments to serialise the json
 
 
 # text formatters
-def em(msg: str) -> str: return f'\033[4m{msg}\033[0m'                                   # underline text for emphasis
-def table(d, h) -> str: return indent(tabulate(d, h, tablefmt='rounded_outline'), '  ')  # make a nice indented table
+# underline text for emphasis
+def em(msg: str) -> str: return f'\033[4m{msg}\033[0m'
 
 
-def model_list_to_json(it: Sequence[BaseModel]) -> str:     # simple list json for List[BaseModel] constructs
+def table(d, h) -> str: return indent(tabulate(d, h,
+                                               tablefmt='rounded_outline'), '  ')  # make a nice indented table
+
+
+# simple list json for List[BaseModel] constructs
+def model_list_to_json(it: Sequence[BaseModel]) -> str:
     return f"[{','.join([i.json(**json_ser_kwargs) for i in it])}]"
 
 
 # list methods dumping comprehensive output to stdout
 def list_info(info: Info):
     print(em("Info:"))
-    headers = ["Filename", "Version", "Mock Controls", "Mock Streams", "Online", "Firmware(s)"]
+    headers = ["Filename", "Version", "Mock Controls",
+               "Mock Streams", "Online", "Firmware(s)"]
     data = list()
     data.append([
         info.config_file, info.version,
         info.mock_ctrl, info.mock_streams, info.online,
-        "/".join([f"{fw.version}{'*' if fw.git_dirty else ''}" for fw in info.fw]) if info.fw else None,
+        "/".join([f"{fw.version}{'*' if fw.git_dirty else ''}" for fw in info.fw]
+                 ) if info.fw else None,
     ])
     print(table(data, headers))
 
@@ -53,21 +61,24 @@ def list_info(info: Info):
 def list_sources(sources: List[Source]):
     print(em(f"Sources[{len(sources)}]"))
     headers = ["ID", "Name", "Input", "Info", "State"]
-    data = [[s.id, s.name, s.input, s.info.name if s.info else None, s.info.state if s.info else None] for s in sources]
+    data = [[s.id, s.name, s.input, s.info.name if s.info else None,
+             s.info.state if s.info else None] for s in sources]
     print(table(data, headers))
 
 
 def list_zones(zones: List[Zone]):
     print(em(f"Zones[{len(zones)}]"))
     headers = ["ID", "Name", "Volume (dB)", "Volume%", "Range (dB)", "Muted"]
-    data = [[z.id, z.name, z.vol, z.vol_f, f"{z.vol_min}..{z.vol_max}", z.mute] for z in zones]
+    data = [[z.id, z.name, z.vol, z.vol_f,
+             f"{z.vol_min}..{z.vol_max}", z.mute] for z in zones]
     print(table(data, headers))
 
 
 def list_groups(groups: List[Group]):
     print(em(f"Groups[{len(groups)}]"))
     headers = ["ID", "Name", "Zones"]
-    data = [[g.id, g.name, ','.join([str(z) for z in g.zones])] for g in groups]
+    data = [[g.id, g.name, ','.join([str(z) for z in g.zones])]
+            for g in groups]
     print(table(data, headers))
 
 
@@ -81,7 +92,8 @@ def list_streams(streams: List[Stream]):
 def list_presets(presets: List[Preset]):
     print(em(f"Presets[{len(presets)}]"))
     headers = ["ID", "Name", "Last Used At"]
-    data = [[p.id, p.name, datetime.datetime.fromtimestamp(p.last_used) if p.last_used is not None else None] for p in presets]
+    data = [[p.id, p.name, datetime.datetime.fromtimestamp(
+        p.last_used) if p.last_used is not None else None] for p in presets]
     print(table(data, headers))
 
 
@@ -133,7 +145,8 @@ def write_out(json_str: str, outfile: Optional[str] = None):
 async def do_placeholder(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ placeholder function during dev - to be removed when completed
     """
-    log.warning(f"todo handle command args --> \n  args = {args}\n  ammplipi = {amplipi}")
+    log.warning(
+        f"todo handle command args --> \n  args = {args}\n  ammplipi = {amplipi}")
 
 
 async def do_status_list(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
@@ -157,7 +170,8 @@ async def do_config_load(args: Namespace, amplipi: AmpliPi, shell: bool, **kwarg
     """
     log.debug(f"config.load(«stdin») forced = {args.force}")
     # Be sure to consume stdin before entering interactive dialogue
-    new_config: Config = instantiate_model(Config, args.infile)  # not using any --input and no validate()
+    # not using any --input and no validate()
+    new_config: Config = instantiate_model(Config, args.infile)
     # Make sure the user wants this
     assert args.force or interactive_confirm("You are about to overwrite the configuration."), \
         "Lacking end-user confirmation. Aborted!"
@@ -241,14 +255,17 @@ async def do_source_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwa
 async def do_source_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Update a source(id)'s configuration
     """
-    log.debug(f"source.set({args.sourceid}, input={args.input if args.input is not None else '«stdin»'})")
+    log.debug(
+        f"source.set({args.sourceid}, input={args.input if args.input is not None else '«stdin»'})")
     assert 0 <= args.sourceid <= 3, "source id must be in range 0..3"
 
     def validate(input: dict):
         log.debug(f"validating source_update kwargs: {input}")
         assert any(input.values()), "no actual source values to be set"
-    src_update: SourceUpdate = instantiate_model(SourceUpdate, args.infile, args.input, validate)
-    await amplipi.set_source(args.sourceid, src_update)  # ignoring status return value
+    src_update: SourceUpdate = instantiate_model(
+        SourceUpdate, args.infile, args.input, validate)
+    # ignoring status return value
+    await amplipi.set_source(args.sourceid, src_update)
 
 
 async def do_source_getimg(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
@@ -290,21 +307,25 @@ async def do_zone_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwarg
 async def do_zone_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Update a zone(id)'s configuration
     """
-    log.debug(f"zone.set({args.zoneid}, input={args.input if args.input is not None else '«stdin»'})")
+    log.debug(
+        f"zone.set({args.zoneid}, input={args.input if args.input is not None else '«stdin»'})")
     assert 0 <= args.zoneid <= 35, "zone id must be in range 0..35"
 
     def validate(input: dict):
         log.debug(f"validating zone_update kwargs: {input}")
         assert len(input.keys()) > 0, "no actual zone values to be set"
-    zone_update: ZoneUpdate = instantiate_model(ZoneUpdate, args.infile, args.input, validate)
-    await amplipi.set_zone(args.zoneid, zone_update)  # ignoring status return value
+    zone_update: ZoneUpdate = instantiate_model(
+        ZoneUpdate, args.infile, args.input, validate)
+    # ignoring status return value
+    await amplipi.set_zone(args.zoneid, zone_update)
 
 
 async def do_zone_setall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Update a bunch of zones (and groups) with the same configuration changes
     """
     log.debug("zone.setall(«stdin»)")
-    mzone_update: MultiZoneUpdate = instantiate_model(MultiZoneUpdate, args.infile)  # not supporting -i
+    mzone_update: MultiZoneUpdate = instantiate_model(
+        MultiZoneUpdate, args.infile)  # not supporting -i
     await amplipi.set_zones(mzone_update)  # ignoring status return value
 
 
@@ -337,25 +358,31 @@ async def do_group_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwar
 async def do_group_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Update a group(id)'s configuration
     """
-    log.debug(f"group.set({args.groupid}, input={args.input if args.input is not None else '«stdin»'})")
+    log.debug(
+        f"group.set({args.groupid}, input={args.input if args.input is not None else '«stdin»'})")
     assert 0 <= args.groupid, "group id must be > 0"
 
     def validate(input: dict):
         log.debug(f"validating group_update kwargs: {input}")
         assert len(input.keys()) > 0, "no actual group values to be set"
-    group_update: GroupUpdate = instantiate_model(GroupUpdate, args.infile, args.input, validate)
-    await amplipi.set_group(args.groupid, group_update)  # ignoring status return value
+    group_update: GroupUpdate = instantiate_model(
+        GroupUpdate, args.infile, args.input, validate)
+    # ignoring status return value
+    await amplipi.set_group(args.groupid, group_update)
 
 
 async def do_group_new(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Create a new grouping of zones
     """
-    log.debug(f"group.create(input={args.input if args.input is not None else '«stdin»'})")
+    log.debug(
+        f"group.create(input={args.input if args.input is not None else '«stdin»'})")
 
     def validate(input: dict):
         log.debug(f"validating group_update kwargs: {input}")
-        assert all((input.get('name'), input.get('zones'))), "group needs a name and list of zones"
-        assert all([bool(0 <= zid <= 35) for zid in input['zones']]), "zone ids must be in range 0..35"
+        assert all((input.get('name'), input.get('zones'))
+                   ), "group needs a name and list of zones"
+        assert all([bool(0 <= zid <= 35) for zid in input['zones']]
+                   ), "zone ids must be in range 0..35"
     group: Group = instantiate_model(Group, args.infile, args.input, validate)
     await amplipi.create_group(group)  # ignoring status return value
 
@@ -397,25 +424,31 @@ async def do_stream_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwa
 async def do_stream_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Update a stream(id)'s configuration
     """
-    log.debug(f"stream.set({args.streamid}, input={args.input if args.input is not None else '«stdin»'})")
+    log.debug(
+        f"stream.set({args.streamid}, input={args.input if args.input is not None else '«stdin»'})")
     assert 0 <= args.streamid, "stream id must be > 0"
 
     def validate(input: dict):
         log.debug(f"validating stream_update kwargs: {input}")
         assert len(input.keys()) > 0, "no actual stream values to be set"
-    stream_update: StreamUpdate = instantiate_model(StreamUpdate, args.infile, args.input, validate)
-    await amplipi.set_stream(args.streamid, stream_update)  # ignoring status return value
+    stream_update: StreamUpdate = instantiate_model(
+        StreamUpdate, args.infile, args.input, validate)
+    # ignoring status return value
+    await amplipi.set_stream(args.streamid, stream_update)
 
 
 async def do_stream_new(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Create a new stream
     """
-    log.debug(f"stream.create(input={args.input if args.input is not None else '«stdin»'})")
+    log.debug(
+        f"stream.create(input={args.input if args.input is not None else '«stdin»'})")
 
     def validate(input: dict):
         log.debug(f"validating stream_update kwargs: {input}")
-        assert all((input.get('name'), input.get('type'))), "stream needs a name and a type"
-    stream: Stream = instantiate_model(Stream, args.infile, args.input, validate)
+        assert all((input.get('name'), input.get('type'))
+                   ), "stream needs a name and a type"
+    stream: Stream = instantiate_model(
+        Stream, args.infile, args.input, validate)
     await amplipi.create_stream(stream)  # ignoring status return value
 
 
@@ -464,7 +497,8 @@ async def do_stream_prev(args: Namespace, amplipi: AmpliPi, shell: bool, **kwarg
     """
     log.debug(f"stream.previous({args.streamid})")
     assert 0 <= args.streamid, "stream id must be > 0"
-    await amplipi.previous_stream(args.streamid)  # ignoring status return value
+    # ignoring status return value
+    await amplipi.previous_stream(args.streamid)
 
 
 async def do_stream_stationchange(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
@@ -472,7 +506,8 @@ async def do_stream_stationchange(args: Namespace, amplipi: AmpliPi, shell: bool
     """
     log.debug(f"stream.station_change({args.streamid})")
     assert 0 <= args.streamid, "stream id must be > 0"
-    await amplipi.station_change_stream(args.streamid, args.station)  # ignoring status return value
+    # ignoring status return value
+    await amplipi.station_change_stream(args.streamid, args.station)
 
 
 # -- preset section
@@ -506,14 +541,17 @@ async def do_preset_set(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs
     """
     log.debug(f"preset.set({args.presetid}, «stdin»)")
     assert 0 <= args.presetid, "stream id must be > 0"
-    preset_update: PresetUpdate = instantiate_model(PresetUpdate, args.infile, args.input)
-    await amplipi.set_preset(args.presetid, preset_update)  # ignoring status return value
+    preset_update: PresetUpdate = instantiate_model(
+        PresetUpdate, args.infile, args.input)
+    # ignoring status return value
+    await amplipi.set_preset(args.presetid, preset_update)
 
 
 async def do_preset_new(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """ Create a new preset
     """
-    log.debug(f"preset.create(input={args.input if args.input is not None else '«stdin»'})")
+    log.debug(
+        f"preset.create(input={args.input if args.input is not None else '«stdin»'})")
     preset: Preset = instantiate_model(Preset, args.infile)
     await amplipi.create_preset(preset)  # ignoring status return value
 
@@ -543,12 +581,15 @@ async def do_announce(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
         assert validators.url(input['media']), "media_url must be a valid URL"
         assert 'vol_f' not in input or 0.0 <= input['vol_f'] <= 1.0, "vol_f must be in range 0.0..1.0"
 
-    log.debug(f"announce(input={args.input if args.input is not None else '«stdin»'})")
-    announcement: Announcement = instantiate_model(Announcement, args.infile, args.input, validate)
+    log.debug(
+        f"announce(input={args.input if args.input is not None else '«stdin»'})")
+    announcement: Announcement = instantiate_model(
+        Announcement, args.infile, args.input, validate)
     # TODO
     #   after PR #14 is merged - we can use the per-call timeout feature to override timeout in this call
     #   Note: only makes sense in shell mode as only then the amplipi object gets reused
-    await amplipi.announce(announcement)   # returns Status object which we ignore
+    # returns Status object which we ignore
+    await amplipi.announce(announcement)
 
 
 # -- shell section
@@ -659,7 +700,8 @@ def merge_model_kwargs(model_cls: ModelMetaclass, input: dict) -> Dict[str, Any]
         value_str: str = input.get(name, envvar(name))
         if value_str is not None and isinstance(value_str, str) and len(value_str) > 0:
             value = parse_valuestr(value_str, modelfield)
-            log.debug(f"converted {value_str} to {value} for {modelfield.type_}")
+            log.debug(
+                f"converted {value_str} to {value} for {modelfield.type_}")
             kwargs[name] = value
     return kwargs
 
@@ -686,13 +728,15 @@ class ParseDict(Action):
     """ Allows -i --input key-val arguments to be converted into dict.
     see [github](https://gist.github.com/fralau/061a4f6c13251367ef1d9a9a99fb3e8d?permalink_comment_id=4134590#gistcomment-4134590)
     """
+
     def __call__(self, parser, namespace, values, option_string=None):
         d = getattr(namespace, self.dest) or {}
 
         if values:
             for item in values:
                 split_items = item.split("=", 1)
-                key = split_items[0].strip()  # we remove blanks around keys, as is logical
+                # we remove blanks around keys, as is logical
+                key = split_items[0].strip()
                 value = split_items[1]
                 d[key] = value
 
@@ -834,163 +878,199 @@ def get_arg_parser() -> ArgumentParser:
         exit_on_error=False,
         help="enter into interactive shell mode")
 
-    action_supbarser_kwargs: Dict[str, Any] = dict(title='actions to perform', required=True, metavar="ACTION",)
+    action_supbarser_kwargs: Dict[str, Any] = dict(
+        title='actions to perform', required=True, metavar="ACTION",)
 
     # details of the status handling branch
     status_subs = topic_status_ap.add_subparsers(**action_supbarser_kwargs)
     # -- status list
-    status_subs.add_parser('list', aliases=['ls'], help="list status overview").set_defaults(func=do_status_list)
+    status_subs.add_parser('list', aliases=[
+                           'ls'], help="list status overview").set_defaults(func=do_status_list)
     # -- status get
-    get_status_ap = status_subs.add_parser('get', help="dumps status json to stdout")
+    get_status_ap = status_subs.add_parser(
+        'get', help="dumps status json to stdout")
     add_output_arguments(get_status_ap)
     get_status_ap.set_defaults(func=do_status_get)
     # -- config load (~≃ status set)
-    load_config_ap = status_subs.add_parser('set', aliases=['load'], help="overwrites status json with input from stdin")
+    load_config_ap = status_subs.add_parser(
+        'set', aliases=['load'], help="overwrites status json with input from stdin")
     add_force_argument(load_config_ap)
-    add_input_arguments(load_config_ap, Status, too_complex_for_cli_keyvals=True)
+    add_input_arguments(load_config_ap, Status,
+                        too_complex_for_cli_keyvals=True)
     load_config_ap.set_defaults(func=do_config_load)
     # -- factory-reset
-    factory_reset_ap = status_subs.add_parser('factory', aliases=['fact'], help="resets the configuration to factory defaults")
+    factory_reset_ap = status_subs.add_parser(
+        'factory', aliases=['fact'], help="resets the configuration to factory defaults")
     add_force_argument(factory_reset_ap)
     factory_reset_ap.set_defaults(func=do_factory_reset)
     # -- system-reset
-    system_reset_ap = status_subs.add_parser('reset', help="resets the system firmware, reloads the current config")
+    system_reset_ap = status_subs.add_parser(
+        'reset', help="resets the system firmware, reloads the current config")
     add_force_argument(system_reset_ap)
     system_reset_ap.set_defaults(func=do_system_reset)
     # -- system-reboot
-    system_reboot_ap = status_subs.add_parser('reboot', aliases=['boot', 'restart'], help="reboots the system OS")
+    system_reboot_ap = status_subs.add_parser(
+        'reboot', aliases=['boot', 'restart'], help="reboots the system OS")
     add_force_argument(system_reboot_ap)
     system_reboot_ap.set_defaults(func=do_system_reboot)
     # -- system-shutdown
-    system_shutdown_ap = status_subs.add_parser('shutdown', aliases=['shut', 'stop'], help="shuts down the system OS")
+    system_shutdown_ap = status_subs.add_parser(
+        'shutdown', aliases=['shut', 'stop'], help="shuts down the system OS")
     add_force_argument(system_shutdown_ap)
     system_shutdown_ap.set_defaults(func=do_system_shutdown)
     # -- status info
-    info_status_ap = status_subs.add_parser('info', help="dumps status-info json to stdout")
+    info_status_ap = status_subs.add_parser(
+        'info', help="dumps status-info json to stdout")
     add_output_arguments(info_status_ap)
     info_status_ap.set_defaults(func=do_info_get)
 
     # details of the source handling branch
     source_subs = topic_source_ap.add_subparsers(**action_supbarser_kwargs)
     # -- source list
-    source_subs.add_parser('list', aliases=['ls'], help="list sources overview").set_defaults(func=do_source_list)
+    source_subs.add_parser('list', aliases=[
+                           'ls'], help="list sources overview").set_defaults(func=do_source_list)
     # -- source get
-    get_source_ap = source_subs.add_parser('get', help="dumps source configuration json to stdout")
+    get_source_ap = source_subs.add_parser(
+        'get', help="dumps source configuration json to stdout")
     add_id_argument(get_source_ap, Source)
     add_output_arguments(get_source_ap)
     get_source_ap.set_defaults(func=do_source_get)
     # -- source get-all
-    getall_source_ap = source_subs.add_parser('get-all', aliases=['getall'], help="dumps source configuration json to stdout")
+    getall_source_ap = source_subs.add_parser(
+        'get-all', aliases=['getall'], help="dumps source configuration json to stdout")
     add_output_arguments(getall_source_ap)
     getall_source_ap.set_defaults(func=do_source_getall)
     # -- source set
-    set_source_ap = source_subs.add_parser('set', help="overwrites source configuration with json input from stdin")
+    set_source_ap = source_subs.add_parser(
+        'set', help="overwrites source configuration with json input from stdin")
     add_id_argument(set_source_ap, Source)
     add_input_arguments(set_source_ap, Source)
     set_source_ap.set_defaults(func=do_source_set)
     # -- source getimg
-    getimg_source_ap = source_subs.add_parser('img', help="gets a square jpeg image of what is playing on the source")
+    getimg_source_ap = source_subs.add_parser(
+        'img', help="gets a square jpeg image of what is playing on the source")
     add_id_argument(getimg_source_ap, Source)
-    getimg_source_ap.add_argument('size', type=int, help="the size (sizexsize) in pixels of the image to be returned")
+    getimg_source_ap.add_argument(
+        'size', type=int, help="the size (sizexsize) in pixels of the image to be returned")
     add_output_arguments(getimg_source_ap)
     getimg_source_ap.set_defaults(func=do_source_getimg)
 
     # details of the zone handling branch
     zone_subs = topic_zone_ap.add_subparsers(**action_supbarser_kwargs)
     # -- zone list
-    zone_subs.add_parser('list', aliases=['ls'], help="list zones overview").set_defaults(func=do_zone_list)
+    zone_subs.add_parser('list', aliases=[
+                         'ls'], help="list zones overview").set_defaults(func=do_zone_list)
     # -- zone get
-    get_zone_ap = zone_subs.add_parser('get', help="dumps zone configuration json to stdout")
+    get_zone_ap = zone_subs.add_parser(
+        'get', help="dumps zone configuration json to stdout")
     add_id_argument(get_zone_ap, Zone)
     add_output_arguments(get_zone_ap)
     get_zone_ap.set_defaults(func=do_zone_get)
     # -- zone getall
-    getall_zone_ap = zone_subs.add_parser('getall', help="dumps zone configuration json to stdout")
+    getall_zone_ap = zone_subs.add_parser(
+        'getall', help="dumps zone configuration json to stdout")
     add_output_arguments(getall_zone_ap)
     getall_zone_ap.set_defaults(func=do_zone_getall)
     # -- zone set
-    set_zone_ap = zone_subs.add_parser('set', help="overwrites zone configuration with json input from stdin")
+    set_zone_ap = zone_subs.add_parser(
+        'set', help="overwrites zone configuration with json input from stdin")
     add_id_argument(set_zone_ap, Zone)
     add_input_arguments(set_zone_ap, ZoneUpdate)
     set_zone_ap.set_defaults(func=do_zone_set)
     # -- zone setall
-    setall_zone_ap = zone_subs.add_parser('setall', help="overwrites zone configuration with json input from stdin")
-    add_input_arguments(setall_zone_ap, MultiZoneUpdate, too_complex_for_cli_keyvals=True)
+    setall_zone_ap = zone_subs.add_parser(
+        'setall', help="overwrites zone configuration with json input from stdin")
+    add_input_arguments(setall_zone_ap, MultiZoneUpdate,
+                        too_complex_for_cli_keyvals=True)
     setall_zone_ap.set_defaults(func=do_zone_setall)
 
     # details of the group handling branch
     group_subs = topic_group_ap.add_subparsers(**action_supbarser_kwargs)
     # -- group list
-    group_subs.add_parser('list', aliases=['ls'], help="list groups overview").set_defaults(func=do_group_list)
+    group_subs.add_parser('list', aliases=[
+                          'ls'], help="list groups overview").set_defaults(func=do_group_list)
     # -- group get
-    get_group_ap = group_subs.add_parser('get', help="dumps group configuration json to stdout")
+    get_group_ap = group_subs.add_parser(
+        'get', help="dumps group configuration json to stdout")
     add_id_argument(get_group_ap, Group)
     add_output_arguments(get_group_ap)
     get_group_ap.set_defaults(func=do_group_get)
     # -- group getall
-    getall_group_ap = group_subs.add_parser('getall', help="dumps group configuration json to stdout")
+    getall_group_ap = group_subs.add_parser(
+        'getall', help="dumps group configuration json to stdout")
     add_output_arguments(getall_group_ap)
     getall_group_ap.set_defaults(func=do_group_getall)
     # -- group set
-    set_group_ap = group_subs.add_parser('set', help="overwrites group configuration with json input from stdin")
+    set_group_ap = group_subs.add_parser(
+        'set', help="overwrites group configuration with json input from stdin")
     add_id_argument(set_group_ap, Group)
     add_input_arguments(set_group_ap, GroupUpdate)
     set_group_ap.set_defaults(func=do_group_set)
     # -- group new
     new_group_ap = group_subs.add_parser(
-            'new', aliases=['make', 'create'],
-            help="create a new group based on the json input from stdin"
-        )
+        'new', aliases=['make', 'create'],
+        help="create a new group based on the json input from stdin"
+    )
     add_input_arguments(new_group_ap, Group)
     new_group_ap.set_defaults(func=do_group_new)
     # -- group del
-    del_group_ap = group_subs.add_parser('delete', aliases=['del', 'rm'], help="deletes the specified group")
+    del_group_ap = group_subs.add_parser(
+        'delete', aliases=['del', 'rm'], help="deletes the specified group")
     add_id_argument(del_group_ap, Group)
     del_group_ap.set_defaults(func=do_group_del)
 
     # details of the stream handling branch
     stream_subs = topic_stream_ap.add_subparsers(**action_supbarser_kwargs)
     # -- stream list
-    stream_subs.add_parser('list', aliases=['ls'], help="list streams overview").set_defaults(func=do_stream_list)
+    stream_subs.add_parser('list', aliases=[
+                           'ls'], help="list streams overview").set_defaults(func=do_stream_list)
     # -- stream get
-    get_stream_ap = stream_subs.add_parser('get', help="dumps stream configuration json to stdout")
+    get_stream_ap = stream_subs.add_parser(
+        'get', help="dumps stream configuration json to stdout")
     add_id_argument(get_stream_ap, Stream)
     add_output_arguments(get_stream_ap)
     get_stream_ap.set_defaults(func=do_stream_get)
     # -- stream getall
-    getall_stream_ap = stream_subs.add_parser('getall', help="dumps stream configuration json to stdout")
+    getall_stream_ap = stream_subs.add_parser(
+        'getall', help="dumps stream configuration json to stdout")
     add_output_arguments(getall_stream_ap)
     getall_stream_ap.set_defaults(func=do_stream_getall)
     # -- stream set
-    set_stream_ap = stream_subs.add_parser('set', help="overwrites stream configuration with json input from stdin")
+    set_stream_ap = stream_subs.add_parser(
+        'set', help="overwrites stream configuration with json input from stdin")
     add_id_argument(set_stream_ap, Stream)
     add_input_arguments(set_stream_ap, StreamUpdate)
     set_stream_ap.set_defaults(func=do_stream_set)
     # -- stream new
     new_stream_ap = stream_subs.add_parser(
-            'new', aliases=['make', 'create'],
-            help="create a new stream based on the json input from stdin"
-        )
+        'new', aliases=['make', 'create'],
+        help="create a new stream based on the json input from stdin"
+    )
     add_input_arguments(new_stream_ap, Stream)
     new_stream_ap.set_defaults(func=do_stream_new)
     # -- stream del
-    del_stream_ap = stream_subs.add_parser('delete', aliases=['del', 'rm'], help="deletes the specified stream")
+    del_stream_ap = stream_subs.add_parser(
+        'delete', aliases=['del', 'rm'], help="deletes the specified stream")
     add_id_argument(del_stream_ap, Stream)
     del_stream_ap.set_defaults(func=do_stream_del)
     # -- stream play
-    play_stream_ap = stream_subs.add_parser('play', aliases=['pl'], help="plays the specified stream")
+    play_stream_ap = stream_subs.add_parser(
+        'play', aliases=['pl'], help="plays the specified stream")
     add_id_argument(play_stream_ap, Stream)
     play_stream_ap.set_defaults(func=do_stream_play)
     # -- stream pause
-    pause_stream_ap = stream_subs.add_parser('pause', aliases=['ps'], help="pauses the specified stream")
+    pause_stream_ap = stream_subs.add_parser(
+        'pause', aliases=['ps'], help="pauses the specified stream")
     add_id_argument(pause_stream_ap, Stream)
     pause_stream_ap.set_defaults(func=do_stream_pause)
     # -- stream stop
-    stop_stream_ap = stream_subs.add_parser('stop', aliases=['st'], help="stops the specified stream")
+    stop_stream_ap = stream_subs.add_parser(
+        'stop', aliases=['st'], help="stops the specified stream")
     add_id_argument(stop_stream_ap, Stream)
     stop_stream_ap.set_defaults(func=do_stream_stop)
     # -- stream next
-    next_stream_ap = stream_subs.add_parser('next', aliases=['fwd', '»'], help="forwards the specified stream to next item")
+    next_stream_ap = stream_subs.add_parser(
+        'next', aliases=['fwd', '»'], help="forwards the specified stream to next item")
     add_id_argument(next_stream_ap, Stream)
     next_stream_ap.set_defaults(func=do_stream_next)
     # -- stream prev
@@ -1004,40 +1084,47 @@ def get_arg_parser() -> ArgumentParser:
         'station', aliases=['pandora', 'stat'],
         help="changes the pandora-stream to the station")
     add_id_argument(station_stream_ap, Stream)
-    station_stream_ap.add_argument('station', action='store', type=int, help="pandora station id")
+    station_stream_ap.add_argument(
+        'station', action='store', type=int, help="pandora station id")
     station_stream_ap.set_defaults(func=do_stream_stationchange)
 
     # details of the preset handling branch
     preset_subs = topic_preset_ap.add_subparsers(**action_supbarser_kwargs)
     # -- preset list
-    preset_subs.add_parser('list', aliases=['ls'], help="list presets overview").set_defaults(func=do_preset_list)
+    preset_subs.add_parser('list', aliases=[
+                           'ls'], help="list presets overview").set_defaults(func=do_preset_list)
     # -- preset get
-    get_preset_ap = preset_subs.add_parser('get', help="dumps preset configuration json to stdout")
+    get_preset_ap = preset_subs.add_parser(
+        'get', help="dumps preset configuration json to stdout")
     add_id_argument(get_preset_ap, Preset)
     add_output_arguments(get_preset_ap)
     get_preset_ap.set_defaults(func=do_preset_get)
     # -- preset getall
-    getall_preset_ap = preset_subs.add_parser('getall', help="dumps preset configuration json to stdout")
+    getall_preset_ap = preset_subs.add_parser(
+        'getall', help="dumps preset configuration json to stdout")
     add_output_arguments(getall_preset_ap)
     getall_preset_ap.set_defaults(func=do_preset_getall)
     # -- preset set
-    set_preset_ap = preset_subs.add_parser('set', help="overwrites preset configuration with json input from stdin")
+    set_preset_ap = preset_subs.add_parser(
+        'set', help="overwrites preset configuration with json input from stdin")
     add_id_argument(set_preset_ap, Preset)
     add_input_arguments(set_preset_ap, PresetUpdate)
     set_preset_ap.set_defaults(func=do_preset_set)
     # -- preset new
     new_preset_ap = preset_subs.add_parser(
-            'new', aliases=['make', 'create'],
-            help="create a new preset based on the json input from stdin"
-        )
+        'new', aliases=['make', 'create'],
+        help="create a new preset based on the json input from stdin"
+    )
     add_input_arguments(new_preset_ap, Preset)
     new_preset_ap.set_defaults(func=do_preset_new)
     # -- preset del
-    del_preset_ap = preset_subs.add_parser('delete', aliases=['del', 'rm'], help="deletes the specified preset")
+    del_preset_ap = preset_subs.add_parser(
+        'delete', aliases=['del', 'rm'], help="deletes the specified preset")
     add_id_argument(del_preset_ap, Preset)
     del_preset_ap.set_defaults(func=do_preset_del)
     # -- preset load
-    load_preset_ap = preset_subs.add_parser('load', aliases=['on', 'activate'], help="activates the specified preset")
+    load_preset_ap = preset_subs.add_parser(
+        'load', aliases=['on', 'activate'], help="activates the specified preset")
     add_id_argument(load_preset_ap, Preset)
     load_preset_ap.set_defaults(func=do_preset_load)
 
@@ -1046,7 +1133,8 @@ def get_arg_parser() -> ArgumentParser:
     topic_announce_ap.set_defaults(func=do_announce)
 
     # details of the shell branch
-    topic_shell_ap.add_argument("script", action='store', nargs='?', help="the script-file to be interpreted")
+    topic_shell_ap.add_argument(
+        "script", action='store', nargs='?', help="the script-file to be interpreted")
     topic_shell_ap.set_defaults(func=do_shell)
 
     return parent_ap
@@ -1112,7 +1200,8 @@ def main():
     loop = asyncio.get_event_loop_policy().get_event_loop()
     try:
         # trigger the actual called action-function (async) and wait for it
-        loop.run_until_complete(args.func(args, amplipi, shell=False, argsparser=ap))
+        loop.run_until_complete(
+            args.func(args, amplipi, shell=False, argsparser=ap))
     except (AssertionError, APIError) as e:
         log.error(e)
         print(e)
