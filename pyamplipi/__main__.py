@@ -1179,14 +1179,14 @@ def enable_logging(logconf=None):
 
 
 # helper function to instantiate the client
-def make_amplipi(args: Namespace) -> AmpliPi:
+def make_amplipi(args: Namespace, loop) -> AmpliPi:
     """ Constructs the amplipi client
     """
     endpoint: str = args.amplipi
     timeout: int = args.timeout
     # in shell modus we got frequent server-disconnected-errors - injecting this custom session avoids that
-    connector: TCPConnector = TCPConnector(force_close=True)
-    http_session: ClientSession = ClientSession(connector=connector)
+    connector: TCPConnector = TCPConnector(force_close=True, loop=loop)
+    http_session: ClientSession = ClientSession(connector=connector, loop=loop)
     return AmpliPi(endpoint, timeout=timeout, http_session=http_session)
 
 
@@ -1205,10 +1205,10 @@ def main():
         sys.exit(1)
 
     enable_logging(logconf=args.logconf)
-    amplipi = make_amplipi(args)
 
     # setup async wait construct for main routines
     loop = asyncio.get_event_loop_policy().get_event_loop()
+    amplipi = make_amplipi(args, loop)
     try:
         # trigger the actual called action-function (async) and wait for it
         loop.run_until_complete(
