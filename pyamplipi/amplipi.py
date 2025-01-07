@@ -452,7 +452,7 @@ class AmpliPi:
         Returns:
             Status: The status of the update operation.
         """
-        response = await self._client.post(f'streams/{stream_id}', update.model_dump_json(**json_ser_kwargs))
+        response = await self._client.patch(f'streams/{stream_id}', update.model_dump_json(**json_ser_kwargs))
         return Status.model_validate(response)
 
     # -- preset calls
