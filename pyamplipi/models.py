@@ -121,7 +121,7 @@ class Stream(BaseModel):
 
 class StreamUpdate(BaseModel):
     """ Reconfiguration of a Stream """
-    name: str
+    name: Optional[str] = None
     user: Optional[str] = None
     password: Optional[str] = None
     station: Optional[str] = None
