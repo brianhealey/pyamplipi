@@ -23,7 +23,8 @@ class Source(BaseModel):
     id: Optional[int]
     name: str
     input: str
-    info: Optional[SourceInfo]  # Additional info about the current audio playing from the stream (generated during
+    # Additional info about the current audio playing from the stream (generated during
+    info: Optional[SourceInfo]
     # playback')
 
 
