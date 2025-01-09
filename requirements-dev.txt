@@ -1,6 +1,9 @@
 build
 flake8>=6.0.0
 mypy>=0.991
+pytest
+pytest-asyncio
+pyyaml
 sphinx>=5.3.0
 sphinx-rtd-theme>=2.0.0
 myst-parser>=1.0.0
