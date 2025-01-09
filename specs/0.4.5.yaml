@@ -4140,7 +4140,7 @@ paths:
                   source_id: 3
               Change volume relative to min/max volume:
                 value:
-                  vol: 0.44
+                  vol_f: 0.44
               Change volume in absolute decibels:
                 value:
                   vol: -45
@@ -4757,16 +4757,22 @@ paths:
       description: Get Group with id=**gid**
       operationId: get_group_api_groups__gid__get
       parameters:
-      - description: Stream ID
+      - description: Group ID
         required: true
         schema:
           title: Gid
           minimum: 0.0
           type: integer
-          description: Stream ID
+          description: Group ID
         name: gid
         in: path
-        examples: {}
+        examples:
+          Zone 1:
+            value: 101
+            summary: Upstairs
+          Zone 2:
+            value: 102
+            summary: Downstairs
       responses:
         '200':
           description: Successful Response
@@ -4814,16 +4820,22 @@ paths:
       description: Delete a group (group=**gid**)
       operationId: delete_group_api_groups__gid__delete
       parameters:
-      - description: Stream ID
+      - description: Group ID
         required: true
         schema:
           title: Gid
           minimum: 0.0
           type: integer
-          description: Stream ID
+          description: Group ID
         name: gid
         in: path
-        examples: {}
+        examples:
+          Zone 1:
+            value: 101
+            summary: Upstairs
+          Zone 2:
+            value: 102
+            summary: Downstairs
       responses:
         '200':
           description: Successful Response
@@ -5253,16 +5265,22 @@ paths:
       description: Update a groups's configuration (group=**gid**)
       operationId: set_group_api_groups__gid__patch
       parameters:
-      - description: Stream ID
+      - description: Group ID
         required: true
         schema:
           title: Gid
           minimum: 0.0
           type: integer
-          description: Stream ID
+          description: Group ID
         name: gid
         in: path
-        examples: {}
+        examples:
+          Zone 1:
+            value: 101
+            summary: Upstairs
+          Zone 2:
+            value: 102
+            summary: Downstairs
       requestBody:
         content:
           application/json:
@@ -5816,46 +5834,123 @@ paths:
               schema:
                 $ref: '#/components/schemas/Stream'
               examples:
-                Regina Spektor Radio:
+                Add Beatles Internet Radio Station:
                   value:
-                    id: 90890
-                    name: Regina Spektor Radio
-                    password: ''
-                    station: '4473713754798410236'
+                    id: 9001
                     status: connected
-                    type: pandora
-                    user: example1@micro-nova.com
-                    browsable: true
-                Matt and Kim Radio (disconnected):
+                    browsable: false
+                    logo: http://www.beatlesradio.com/content/images/thumbs/0000587.gif
+                    name: Beatles Radio
+                    type: internetradio
+                    url: http://www.beatlesradio.com:8000/stream/1/
+                Add Classical KING Internet Radio Station:
                   value:
-                    id: 90891
-                    info:
-                      details: No info available
+                    id: 9002
+                    status: connected
+                    browsable: false
+                    logo: https://i.iheart.com/v3/re/assets/images/7bcfd87a-de3e-47d0-b896-be0ed38c9d74.png
+                    name: Classical KING FM 98.1
+                    type: internetradio
+                    url: http://classicalking.streamguys1.com/king-fm-aac-iheart
+                Add Generic DLNA:
+                  value:
+                    id: 9003
+                    status: connected
+                    browsable: false
+                    name: Replace this text with a name you like!
+                    type: dlna
+                Add Groove Salad Internet Radio Station:
+                  value:
+                    id: 9004
+                    status: connected
+                    browsable: false
+                    logo: https://somafm.com/img3/groovesalad-200.jpg
+                    name: Groove Salad
+                    type: internetradio
+                    url: http://ice2.somafm.com/groovesalad-16-aac
+                Add KEXP Internet Radio Station:
+                  value:
+                    id: 9005
+                    status: connected
+                    browsable: false
+                    logo: https://i.iheart.com/v3/re/new_assets/cc4e0a17-5233-4e4b-9b6b-7799904f78ea
+                    name: KEXP 90.3
+                    type: internetradio
+                    url: http://live-aacplus-64.kexp.org/kexp64.aac
+                Add Matt and Kim Pandora Station:
+                  value:
+                    id: 9006
+                    status: connected
                     name: Matt and Kim Radio
-                    password: ''
-                    station: '4610303469018478727'
-                    status: disconnected
+                    password: s79sDDkjf
+                    station: '4473713754798410236'
                     type: pandora
-                    user: example2@micro-nova.com
+                    user: test@micro-nova.com
                     browsable: true
-                AirPlay (connected):
+                Add Spotify Connect:
                   value:
-                    id: 44590
-                    info:
-                      details: No info available
-                    name: Jason's iPhone
+                    id: 9007
                     status: connected
-                    type: airplay
                     browsable: false
-                AirPlay (disconnected):
+                    name: AmpliPi
+                    type: spotify
+                Add AirPlay:
                   value:
-                    id: 4894
-                    info:
-                      details: No info available
-                    name: Rnay
-                    status: disconnected
-                    type: airplay
+                    id: 9008
+                    status: connected
                     browsable: false
+                    name: AmpliPi
+                    type: airplay
+                    ap2: true
+                Play single file or announcement:
+                  value:
+                    id: 9009
+                    status: connected
+                    browsable: false
+                    name: Play NASA Announcement
+                    type: fileplayer
+                    url: https://www.nasa.gov/wp-content/uploads/2015/01/640150main_Go20at20Throttle20Up.mp3
+                Add FM Radio Station:
+                  value:
+                    id: 9010
+                    status: connected
+                    browsable: false
+                    name: WXYZ
+                    type: fmradio
+                    freq: '100.1'
+                    logo: static/imgs/fmradio.png
+                Add LMS Client connected specifically to amplipi:
+                  value:
+                    id: 9011
+                    status: connected
+                    browsable: false
+                    name: Test
+                    server: localhost
+                    type: lms
+                Add LMS Client:
+                  value:
+                    id: 9012
+                    status: connected
+                    browsable: false
+                    name: Family
+                    type: lms
+                Add LMS Client connected specifically to mylmsserver:
+                  value:
+                    id: 9013
+                    status: connected
+                    browsable: false
+                    name: Family
+                    type: lms
+                    server: mylmsserver
+                Add LMS Client connected specifically to mylmsserver with port specified:
+                  value:
+                    id: 9014
+                    status: connected
+                    browsable: false
+                    name: Family
+                    type: lms
+                    server: mylmsserver
+                    port: 9000
         '422':
           description: Validation Error
           content:
@@ -8337,7 +8432,7 @@ paths:
                         img_url: http://mediaserver-cont-sv5-2-v4v6.pandora.com/images/00/4c/b7/12/d64a4ffe82251fcc9c44555c/1080W_1080H.jpg
                         name: Blackmill Radio - pandora
                         state: playing
-                        station: Blackmill Radio
+                        image: Blackmill Radio
                         supported_cmds:
                         - play
                         - pause
