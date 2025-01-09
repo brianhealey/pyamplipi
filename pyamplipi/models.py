@@ -9,8 +9,8 @@ from pydantic import BaseModel
 
 class SourceInfo(BaseModel):
     """ Info about the current audio playing from the connected stream (generated during playback) """
-    name: str
-    state: str  # paused, playing, stopped, unknown, loading ???
+    name: Optional[str] = None
+    state: Optional[str] = None  # paused, playing, stopped, ???
     artist: Optional[str] = None
     track: Optional[str] = None
     album: Optional[str] = None
