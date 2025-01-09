@@ -54,7 +54,7 @@ class AmpliPi:
             Status: The current status of the system.
         """
         response = await self._client.get('')
-        return Status.parse_obj(response)
+        return Status.model_validate(response)
 
     async def load_config(self, config: Config) -> Status:
         """
@@ -66,8 +66,8 @@ class AmpliPi:
         Returns:
             Status: The status of the load operation.
         """
-        response = await self._client.post('load', config.json(**json_ser_kwargs))
-        return Status.parse_obj(response)
+        response = await self._client.post('load', config.model_dump_json(**json_ser_kwargs))
+        return Status.model_validate(response)
 
     async def factory_reset(self) -> Status:
         """
@@ -77,7 +77,7 @@ class AmpliPi:
             Status: The status of the factory reset operation.
         """
         response = await self._client.post('factory_reset')
-        return Status.parse_obj(response)
+        return Status.model_validate(response)
 
     async def system_reset(self) -> Status:
         """
@@ -87,7 +87,7 @@ class AmpliPi:
             Status: The status of the system reset operation.
         """
         response = await self._client.post('reset')
-        return Status.parse_obj(response)
+        return Status.model_validate(response)
 
     async def system_reboot(self) -> Status:
         """
@@ -97,7 +97,7 @@ class AmpliPi:
             Status: The status of the reboot operation.
         """
         response = await self._client.post('reboot')
-        return Status.parse_obj(response)
+        return Status.model_validate(response)
 
     async def system_shutdown(self) -> Status:
         """
@@ -107,7 +107,7 @@ class AmpliPi:
             Status: The status of the shutdown operation.
         """
         response = await self._client.post('shutdown')
-        return Status.parse_obj(response)
+        return Status.model_validate(response)
 
     async def get_info(self) -> Info:
         """
@@ -117,7 +117,7 @@ class AmpliPi:
             Info: Information about the system.
         """
         response = await self._client.get('info')
-        return Info.parse_obj(response)
+        return Info.model_validate(response)
 
     async def get_version(self):
         """
@@ -152,7 +152,7 @@ class AmpliPi:
             List[Source]: A list of available sources.
         """
         response = await self._client.get('sources')
-        return [Source.parse_obj(source) for source in response['sources']]
+        return [Source.model_validate(source) for source in response['sources']]
 
     async def get_source(self, source_id: int) -> Source:
         """
@@ -165,7 +165,7 @@ class AmpliPi:
             Source: The details of the specified source.
         """
         response = await self._client.get(f'sources/{source_id}')
-        return Source.parse_obj(response)
+        return Source.model_validate(response, from_attributes=True)
 
     async def set_source(self, source_id: int, source_update: SourceUpdate) -> Status:
         """
@@ -178,8 +178,8 @@ class AmpliPi:
         Returns:
             Status: The status of the update operation.
         """
-        response = await self._client.patch(f'sources/{source_id}', source_update.json(**json_ser_kwargs))
-        return Status.parse_obj(response)
+        response = await self._client.patch(f'sources/{source_id}', source_update.model_dump_json(**json_ser_kwargs))
+        return Status.model_validate(response)
 
     async def get_source_img(self, source_id: int, height: int, outfile: Optional[str] = None) -> None:
         """
@@ -208,7 +208,7 @@ class AmpliPi:
             Zone: The details of the specified zone.
         """
         response = await self._client.get(f'zones/{zone_id}')
-        return Zone.parse_obj(response)
+        return Zone.model_validate(response)
 
     async def get_zones(self) -> List[Zone]:
         """
@@ -218,7 +218,7 @@ class AmpliPi:
             List[Zone]: A list of available zones.
         """
         response = await self._client.get('zones')
-        return [Zone.parse_obj(zone) for zone in response['zones']]
+        return [Zone.model_validate(zone) for zone in response['zones']]
 
     async def set_zones(self, zone_update: MultiZoneUpdate) -> Status:
         """
@@ -230,8 +230,8 @@ class AmpliPi:
         Returns:
             Status: The status of the update operation.
         """
-        response = await self._client.patch('zones', zone_update.json(**json_ser_kwargs))
-        return Status.parse_obj(response)
+        response = await self._client.patch('zones', zone_update.model_dump_json(**json_ser_kwargs))
+        return Status.model_validate(response)
 
     async def set_zone(self, zone_id: int, zone_update: ZoneUpdate) -> Status:
         """
@@ -245,8 +245,8 @@ class AmpliPi:
             Status: The status of the update operation.
         """
         response = await self._client.patch(f'zones/{zone_id}',
-                                            zone_update.json(**json_ser_kwargs))
-        return Status.parse_obj(response)
+                                            zone_update.model_dump_json(**json_ser_kwargs))
+        return Status.model_validate(response)
 
     # -- group calls
     async def create_group(self, new_group: Group) -> Group:
@@ -259,8 +259,8 @@ class AmpliPi:
         Returns:
             Group: The created group.
         """
-        response = await self._client.post('group', new_group.json(**json_ser_kwargs))
-        return Group.parse_obj(response)
+        response = await self._client.post('group', new_group.model_dump_json(**json_ser_kwargs))
+        return Group.model_validate(response)
 
     async def get_groups(self) -> List[Group]:
         """
@@ -270,7 +270,7 @@ class AmpliPi:
             List[Group]: A list of available groups.
         """
         response = await self._client.get('groups')
-        return [Group.parse_obj(group) for group in response['groups']]
+        return [Group.model_validate(group) for group in response['groups']]
 
     async def get_group(self, group_id) -> Group:
         """
@@ -283,7 +283,7 @@ class AmpliPi:
             Group: The details of the specified group.
         """
         response = await self._client.get(f'groups/{group_id}')
-        return Group.parse_obj(response)
+        return Group.model_validate(response)
 
     async def delete_group(self, group_id):
         """
@@ -296,7 +296,7 @@ class AmpliPi:
             Status: The status of the delete operation.
         """
         response = await self._client.delete(f'groups/{group_id}')
-        return Status.parse_obj(response)
+        return Status.model_validate(response)
 
     async def set_group(self, group_id, update: GroupUpdate) -> Status:
         """
@@ -309,8 +309,8 @@ class AmpliPi:
         Returns:
             Status: The status of the update operation.
         """
-        response = await self._client.patch(f'groups/{group_id}', update.json(**json_ser_kwargs))
-        return Status.parse_obj(response)
+        response = await self._client.patch(f'groups/{group_id}', update.model_dump_json(**json_ser_kwargs))
+        return Status.model_validate(response)
 
     # -- stream calls
     async def get_streams(self) -> List[Stream]:
@@ -321,7 +321,7 @@ class AmpliPi:
             List[Stream]: A list of available streams.
         """
         response = await self._client.get('streams')
-        return [Stream.parse_obj(stream) for stream in response['streams']]
+        return [Stream.model_validate(stream) for stream in response['streams']]
 
     async def get_stream(self, stream_id: int) -> Stream:
         """
@@ -334,7 +334,7 @@ class AmpliPi:
             Stream: The details of the specified stream.
         """
         response = await self._client.get(f'streams/{stream_id}')
-        return Stream.parse_obj(response)
+        return Stream.model_validate(response)
 
     async def play_stream(self, stream_id: int) -> Status:
         """
@@ -347,7 +347,7 @@ class AmpliPi:
             Status: The status of the play operation.
         """
         response = await self._client.post(f'streams/{stream_id}/play')
-        return Status.parse_obj(response)
+        return Status.model_validate(response)
 
     async def pause_stream(self, stream_id: int) -> Status:
         """
@@ -360,7 +360,7 @@ class AmpliPi:
             Status: The status of the pause operation.
         """
         response = await self._client.post(f'streams/{stream_id}/pause')
-        return Status.parse_obj(response)
+        return Status.model_validate(response)
 
     async def previous_stream(self, stream_id: int) -> Status:
         """
@@ -373,7 +373,7 @@ class AmpliPi:
             Status: The status of the previous stream operation.
         """
         response = await self._client.post(f'streams/{stream_id}/prev')
-        return Status.parse_obj(response)
+        return Status.model_validate(response)
 
     async def next_stream(self, stream_id: int) -> Status:
         """
@@ -386,7 +386,7 @@ class AmpliPi:
             Status: The status of the next stream operation.
         """
         response = await self._client.post(f'streams/{stream_id}/next')
-        return Status.parse_obj(response)
+        return Status.model_validate(response)
 
     async def stop_stream(self, stream_id: int) -> Status:
         """
@@ -399,7 +399,7 @@ class AmpliPi:
             Status: The status of the stop operation.
         """
         response = await self._client.post(f'streams/{stream_id}/stop')
-        return Status.parse_obj(response)
+        return Status.model_validate(response)
 
     async def station_change_stream(self, stream_id: int, station: int) -> Status:
         """
@@ -413,7 +413,7 @@ class AmpliPi:
             Status: The status of the station change operation.
         """
         response = await self._client.post(f'streams/{stream_id}/station={station}')
-        return Status.parse_obj(response)
+        return Status.model_validate(response)
 
     async def create_stream(self, new_stream: Stream) -> Status:
         """
@@ -425,8 +425,8 @@ class AmpliPi:
         Returns:
             Status: The status of the create operation.
         """
-        response = await self._client.post('stream', new_stream.json(**json_ser_kwargs))
-        return Status.parse_obj(response)
+        response = await self._client.post('stream', new_stream.model_dump_json(**json_ser_kwargs))
+        return Status.model_validate(response)
 
     async def delete_stream(self, stream_id: int) -> Status:
         """
@@ -439,7 +439,7 @@ class AmpliPi:
             Status: The status of the delete operation.
         """
         response = await self._client.delete(f'streams/{stream_id}')
-        return Status.parse_obj(response)
+        return Status.model_validate(response)
 
     async def set_stream(self, stream_id: int, update: StreamUpdate) -> Status:
         """
@@ -452,8 +452,8 @@ class AmpliPi:
         Returns:
             Status: The status of the update operation.
         """
-        response = await self._client.post(f'streams/{stream_id}', update.json(**json_ser_kwargs))
-        return Status.parse_obj(response)
+        response = await self._client.patch(f'streams/{stream_id}', update.model_dump_json(**json_ser_kwargs))
+        return Status.model_validate(response)
 
     # -- preset calls
     async def get_presets(self) -> List[Preset]:
@@ -464,7 +464,7 @@ class AmpliPi:
             List[Preset]: A list of available presets.
         """
         response = await self._client.get('presets')
-        return [Preset.parse_obj(preset) for preset in response['presets']]
+        return [Preset.model_validate(preset) for preset in response['presets']]
 
     async def get_preset(self, preset_id: int) -> Preset:
         """
@@ -477,7 +477,7 @@ class AmpliPi:
             Preset: The details of the specified preset.
         """
         response = await self._client.get(f'presets/{preset_id}')
-        return Preset.parse_obj(response)
+        return Preset.model_validate(response)
 
     async def set_preset(self, preset_id: int, update: PresetUpdate) -> Status:
         """
@@ -490,8 +490,8 @@ class AmpliPi:
         Returns:
             Status: The status of the update operation.
         """
-        response = await self._client.patch(f'presets/{preset_id}', update.json(**json_ser_kwargs))
-        return Status.parse_obj(response)
+        response = await self._client.patch(f'presets/{preset_id}', update.model_dump_json(**json_ser_kwargs))
+        return Status.model_validate(response)
 
     async def create_preset(self, new_preset: Preset) -> Preset:
         """
@@ -503,8 +503,8 @@ class AmpliPi:
         Returns:
             Preset: The created preset.
         """
-        response = await self._client.post('preset', new_preset.json(**json_ser_kwargs))
-        return Preset.parse_obj(response)
+        response = await self._client.post('preset', new_preset.model_dump_json(**json_ser_kwargs))
+        return Preset.model_validate(response)
 
     async def delete_preset(self, preset_id: int) -> Status:
         """
@@ -517,7 +517,7 @@ class AmpliPi:
             Status: The status of the delete operation.
         """
         response = await self._client.delete(f'presets/{preset_id}')
-        return Status.parse_obj(response)
+        return Status.model_validate(response)
 
     async def load_preset(self, preset_id: int) -> Status:
         """
@@ -530,7 +530,7 @@ class AmpliPi:
             Status: The status of the load operation.
         """
         response = await self._client.post(f'presets/{preset_id}/load')
-        return Status.parse_obj(response)
+        return Status.model_validate(response)
 
     # -- anounce call
     async def announce(self, announcement: Announcement, timeout: Optional[int] = None) -> Status:
@@ -544,8 +544,8 @@ class AmpliPi:
         Returns:
             Status: The status of the announcement operation.
         """
-        response = await self._client.post('announce', announcement.json(**json_ser_kwargs), timeout=timeout)
-        return Status.parse_obj(response)
+        response = await self._client.post('announce', announcement.model_dump_json(**json_ser_kwargs), timeout=timeout)
+        return Status.model_validate(response)
 
     # -- play media call
     async def play_media(self, media: PlayMedia) -> Status:
@@ -562,11 +562,11 @@ class AmpliPi:
         if version < MIN_MEDIA_PLAYER_VERSION:  # TOO OLD, USE ANNOUNCEMENT
             announce = Announcement(media=media.media,
                                     source_id=media.source_id)
-            response = await self._client.post('announce', announce.json(**json_ser_kwargs))
-            return Status.parse_obj(response)
+            response = await self._client.post('announce', announce.model_dump_json(**json_ser_kwargs))
+            return Status.model_validate(response)
         else:
-            response = await self._client.post('play', media.json(**json_ser_kwargs))
-            return Status.parse_obj(response)
+            response = await self._client.post('play', media.model_dump_json(**json_ser_kwargs))
+            return Status.model_validate(response)
 
     # -- client control
     async def close(self):

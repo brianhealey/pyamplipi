@@ -8,23 +8,24 @@ from pydantic import BaseModel
 
 
 class SourceInfo(BaseModel):
-    name: str
-    state: str  # paused, playing, stopped, unknown, loading ???
-    artist: Optional[str]
-    track: Optional[str]
-    album: Optional[str]
-    station: Optional[str]  # name of radio station
-    img_url: Optional[str]
+    """ Info about the current audio playing from the connected stream (generated during playback) """
+    name: Optional[str] = None
+    state: Optional[str] = None  # paused, playing, stopped, ???
+    artist: Optional[str] = None
+    track: Optional[str] = None
+    album: Optional[str] = None
+    station: Optional[str] = None  # name of radio station
+    img_url: Optional[str] = None
     supported_cmds: List[str] = []
 
 
 class Source(BaseModel):
     """ An audio source """
-    id: Optional[int]
+    id: Optional[int] = None
     name: str
     input: str
     # Additional info about the current audio playing from the stream (generated during
-    info: Optional[SourceInfo]
+    info: Optional[SourceInfo] = None
     # playback')
 
 
@@ -41,7 +42,7 @@ class SourceUpdateWithId(SourceUpdate):
 
 class Zone(BaseModel):
     """ Audio output to a stereo pair of speakers, typically belonging to a room """
-    id: Optional[int]
+    id: Optional[int] = None
     name: str
     source_id: int
     mute: bool
@@ -54,14 +55,14 @@ class Zone(BaseModel):
 
 class ZoneUpdate(BaseModel):
     """ Reconfiguration of a Zone """
-    name: Optional[str]
-    source_id: Optional[int]
-    mute: Optional[bool]
-    vol: Optional[int]
-    vol_f: Optional[float]
-    vol_min: Optional[int]
-    vol_max: Optional[int]
-    disabled: Optional[bool]
+    name: Optional[str] = None
+    source_id: Optional[int] = None
+    mute: Optional[bool] = None
+    vol: Optional[int] = None
+    vol_f: Optional[float] = None
+    vol_min: Optional[int] = None
+    vol_max: Optional[int] = None
+    disabled: Optional[bool] = None
 
 
 class ZoneUpdateWithId(ZoneUpdate):
@@ -71,31 +72,31 @@ class ZoneUpdateWithId(ZoneUpdate):
 
 class MultiZoneUpdate(BaseModel):
     """ Reconfiguration of multiple zones specified by zone_ids and group_ids """
-    zones: Optional[List[int]]
-    groups: Optional[List[int]]
+    zones: Optional[List[int]] = None
+    groups: Optional[List[int]] = None
     update: ZoneUpdate
 
 
 class Group(BaseModel):
     """ A group of zones that can share the same audio input and be controlled as a group ie. Upstairs. Volume, mute,
     and source_id fields are aggregates of the member zones."""
-    id: Optional[int]
+    id: Optional[int] = None
     name: str
-    source_id: Optional[int]
+    source_id: Optional[int] = None
     zones: List[int]
-    mute: Optional[bool]
-    vol_delta: Optional[int]
-    vol_f: Optional[float]
+    mute: Optional[bool] = None
+    vol_delta: Optional[int] = None
+    vol_f: Optional[float] = None
 
 
 class GroupUpdate(BaseModel):
     """ Reconfiguration of a Group """
-    name: Optional[str]
-    source_id: Optional[int]
-    zones: Optional[List[int]]
-    mute: Optional[bool]
-    vol_delta: Optional[int]
-    vol_f: Optional[float]
+    name: Optional[str] = None
+    source_id: Optional[int] = None
+    zones: Optional[List[int]] = None
+    mute: Optional[bool] = None
+    vol_delta: Optional[int] = None
+    vol_f: Optional[float] = None
 
 
 class GroupUpdateWithId(GroupUpdate):
@@ -105,28 +106,28 @@ class GroupUpdateWithId(GroupUpdate):
 
 class Stream(BaseModel):
     """ Digital stream such as Pandora, AirPlay or Spotify """
-    id: Optional[int]
+    id: Optional[int] = None
     name: str
     type: str
-    user: Optional[str]
-    password: Optional[str]
-    station: Optional[str]
-    url: Optional[str]
-    logo: Optional[str]
-    freq: Optional[str]
-    client_id: Optional[str]
-    token: Optional[str]
+    user: Optional[str] = None
+    password: Optional[str] = None
+    station: Optional[str] = None
+    url: Optional[str] = None
+    logo: Optional[str] = None
+    freq: Optional[str] = None
+    client_id: Optional[str] = None
+    token: Optional[str] = None
 
 
 class StreamUpdate(BaseModel):
     """ Reconfiguration of a Stream """
-    name: str
-    user: Optional[str]
-    password: Optional[str]
-    station: Optional[str]
-    url: Optional[str]
-    logo: Optional[str]
-    freq: Optional[str]
+    name: Optional[str] = None
+    user: Optional[str] = None
+    password: Optional[str] = None
+    station: Optional[str] = None
+    url: Optional[str] = None
+    logo: Optional[str] = None
+    freq: Optional[str] = None
 
 
 class StreamCommand(str, Enum):
@@ -142,9 +143,9 @@ class StreamCommand(str, Enum):
 
 class PresetState(BaseModel):
     """ A set of partial configuration changes to make to sources, zones, and groups """
-    sources: Optional[List[SourceUpdateWithId]]
-    zones: Optional[List[ZoneUpdateWithId]]
-    groups: Optional[List[GroupUpdateWithId]]
+    sources: Optional[List[SourceUpdateWithId]] = None
+    zones: Optional[List[ZoneUpdateWithId]] = None
+    groups: Optional[List[GroupUpdateWithId]] = None
 
 
 class Command(BaseModel):
@@ -154,17 +155,17 @@ class Command(BaseModel):
 
 
 class Preset(BaseModel):
-    id: Optional[int]
+    id: Optional[int] = None
     name: str
-    state: Optional[PresetState]
-    commands: Optional[List[Command]]
+    state: Optional[PresetState] = None
+    commands: Optional[List[Command]] = None
     last_used: Union[int, None] = None
 
 
 class PresetUpdate(BaseModel):
-    name: Optional[str]
-    state: Optional[PresetState]
-    commands: Optional[List[Command]]
+    name: Optional[str] = None
+    state: Optional[PresetState] = None
+    commands: Optional[List[Command]] = None
 
 
 class Announcement(BaseModel):
@@ -178,15 +179,15 @@ class Announcement(BaseModel):
 
 class PlayMedia(BaseModel):
     media: str
-    vol: Optional[int]
-    vol_f: Optional[float]
-    source_id: Optional[int]
+    vol: Optional[int] = None
+    vol_f: Optional[float] = None
+    source_id: Optional[int] = None
 
 
 class FirmwareInfo(BaseModel):
-    version: Optional[str]
-    git_hash: Optional[str]
-    git_dirty: Optional[bool]
+    version: Optional[str] = None
+    git_hash: Optional[str] = None
+    git_dirty: Optional[bool] = None
 
 
 class Info(BaseModel):
@@ -195,8 +196,8 @@ class Info(BaseModel):
     mock_ctrl: bool = False
     mock_streams: bool = False
     online: Optional[bool] = True
-    latest_release: Optional[str]
-    fw: Optional[List[FirmwareInfo]]
+    latest_release: Optional[str] = None
+    fw: Optional[List[FirmwareInfo]] = None
 
 
 class Config(BaseModel):
@@ -208,7 +209,7 @@ class Config(BaseModel):
 
 
 class Status(Config):
-    info: Optional[Info]
+    info: Optional[Info] = None
 
 
 class AppSettings(BaseModel):

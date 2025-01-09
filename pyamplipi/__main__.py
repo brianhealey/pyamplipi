@@ -5,13 +5,12 @@ import sys
 import os
 import datetime
 from argparse import ArgumentParser, ArgumentDefaultsHelpFormatter, Namespace, Action, ArgumentError
+import typing
 from typing import Optional, List, Callable, Sequence, Dict, Any, Union, Type
 from textwrap import indent
-import json
 import yaml
 from pydantic import BaseModel
-from pydantic.fields import ModelField
-from pydantic.main import ModelMetaclass
+from pydantic.fields import FieldInfo
 from dotenv import load_dotenv
 from aiohttp import TCPConnector, ClientSession
 from aiohttp.client_exceptions import ServerDisconnectedError
@@ -26,9 +25,9 @@ from .error import APIError
 # pylint: disable=logging-fstring-interpolation
 
 # constants
-log = logging.getLogger(__name__)                     # central logging channel
-json_ser_kwargs: Dict[str, Any] = dict(
-    exclude_unset=True, indent=2)  # arguments to serialise the json
+log = logging.getLogger(__name__)         # central logging channel
+# arguments to serialise the json
+json_ser_kwargs: Dict[str, Any] = {'exclude_unset': True, 'indent': 2}
 
 
 # text formatters
@@ -44,7 +43,7 @@ def table(d, h) -> str:
 
 # simple list json for List[BaseModel] constructs
 def model_list_to_json(it: Sequence[BaseModel]) -> str:
-    return f"[{','.join([i.json(**json_ser_kwargs) for i in it])}]"
+    return f"[{','.join([i.model_dump_json(**json_ser_kwargs) for i in it])}]"
 
 
 # list methods dumping comprehensive output to stdout
@@ -166,7 +165,7 @@ async def do_status_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs
     """
     log.debug("status.get()")
     status: Status = await amplipi.get_status()
-    write_out(status.json(**json_ser_kwargs), args.outfile)
+    write_out(status.model_dump_json(**json_ser_kwargs), args.outfile)
 
 
 async def do_config_load(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
@@ -227,7 +226,7 @@ async def do_info_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     """
     log.debug("status.info()")
     info: Info = await amplipi.get_info()
-    write_out(info.json(**json_ser_kwargs), args.outfile)
+    write_out(info.model_dump_json(**json_ser_kwargs), args.outfile)
 
 
 # -- source section
@@ -245,7 +244,7 @@ async def do_source_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs
     log.debug(f"source.get({args.sourceid})")
     assert 0 <= args.sourceid <= 3, "source id must be in range 0..3"
     source: Source = await amplipi.get_source(args.sourceid)
-    write_out(source.json(**json_ser_kwargs), args.outfile)
+    write_out(source.model_dump_json(**json_ser_kwargs), args.outfile)
 
 
 async def do_source_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
@@ -297,7 +296,7 @@ async def do_zone_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
     log.debug(f"zone.get({args.zoneid})")
     assert 0 <= args.zoneid <= 35, "zone id must be in range 0..35"
     zone: Zone = await amplipi.get_zone(args.zoneid)
-    write_out(zone.json(**json_ser_kwargs), args.outfile)
+    write_out(zone.model_dump_json(**json_ser_kwargs), args.outfile)
 
 
 async def do_zone_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
@@ -348,7 +347,7 @@ async def do_group_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs)
     log.debug(f"group.get({args.groupid})")
     assert 0 <= args.groupid, "group id must be > 0"
     group: Group = await amplipi.get_group(args.groupid)
-    write_out(group.json(**json_ser_kwargs), args.outfile)
+    write_out(group.model_dump_json(**json_ser_kwargs), args.outfile)
 
 
 async def do_group_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
@@ -414,7 +413,7 @@ async def do_stream_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs
     log.debug(f"stream.get({args.streamid})")
     assert 0 <= args.streamid, "stream id must be > 0"
     stream: Stream = await amplipi.get_stream(args.streamid)
-    write_out(stream.json(**json_ser_kwargs), args.outfile)
+    write_out(stream.model_dump_json(**json_ser_kwargs), args.outfile)
 
 
 async def do_stream_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
@@ -529,7 +528,7 @@ async def do_preset_get(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs
     log.debug(f"preset.get({args.presetid})")
     assert 0 <= args.presetid, "preset id must be > 0"
     preset: Preset = await amplipi.get_preset(args.presetid)
-    write_out(preset.json(**json_ser_kwargs), args.outfile)
+    write_out(preset.model_dump_json(**json_ser_kwargs), args.outfile)
 
 
 async def do_preset_getall(args: Namespace, amplipi: AmpliPi, shell: bool, **kwargs):
@@ -670,7 +669,7 @@ async def shell_cmd_exec(cmdline: str, amplipi: AmpliPi, argsparser: ArgumentPar
         print(e)
 
 
-def instantiate_model(model_cls: ModelMetaclass, infile: str, _input: Optional[Dict[str, Any]] = None,
+def instantiate_model(model_cls, infile: str, _input: Optional[Dict[str, Any]] = None,
                       validate: Optional[Callable] = None):
     """ Instatiates the passed BaseModel based on:
       (1) either the passed input dict (if not None) merged with env var defaults
@@ -688,10 +687,10 @@ def instantiate_model(model_cls: ModelMetaclass, infile: str, _input: Optional[D
             validate(_input)
         return model_cls(**_input)
     #  else read the object from stdin (json)
-    return model_cls.parse_obj(json.loads(read_in(infile)))  # type: ignore
+    return model_cls.model_validate_json(read_in(infile))  # type: ignore
 
 
-def merge_model_kwargs(model_cls: ModelMetaclass, input: dict) -> Dict[str, Any]:
+def merge_model_kwargs(model_cls, _input: dict) -> Dict[str, Any]:
     """ Builds the kwargs needed to construct the passed BaseModel by merging the passed input dict
     with possible available environment variables with key following this pattern:
         "AMPLIPI_" + «name of BaseModel» + "_" + «name of field in BaseModel» (in all caps)
@@ -700,32 +699,40 @@ def merge_model_kwargs(model_cls: ModelMetaclass, input: dict) -> Dict[str, Any]
         envkey = f"AMPLIPI_{model_cls.__name__}_{name}".upper()
         return os.getenv(envkey)
     kwargs = dict()
-    for name, modelfield in model_cls.__fields__.items():  # type: ignore
-        value_str: str = input.get(name, envvar(name))
+    for name, modelfield in model_cls.model_fields.items():  # type: ignore
+        value_str: str = _input.get(name, envvar(name))
         if value_str is not None and isinstance(value_str, str) and len(value_str) > 0:
             value = parse_valuestr(value_str, modelfield)
             log.debug(
-                f"converted {value_str} to {value} for {modelfield.type_}")
+                f"converted {value_str} to {value} for {modelfield.annotation}")
             kwargs[name] = value
     return kwargs
 
 
 # helper functions for the arguments parsing
-def parse_valuestr(val_str: str, modelfield: ModelField):
-    """ Uses the pydantic defined Modelfield to correctly parse CLI passed string-values to typed values
-    Supports simple types and lists of them
+def parse_valuestr(val_str: str, modelfield: FieldInfo):
+    """ Uses the pydantic defined FieldInfo to correctly parse CLI passed string-values to typed values
+    Supports simple types and lists of them which can be wrapped in Optional.
+    TODO: This is fairly fragile. We should find a more robust solution.
     """
-    convertor = modelfield.type_
-    if convertor == bool:
-        def boolconvertor(s):
+    converter: Union[Type, None, Callable] = modelfield.annotation
+
+    if getattr(converter, '_name', None) == "Optional":
+        # Optional needs to be manually unwrapped to the inner type
+        converter = typing.get_args(converter)[0]  # unwrap Optional
+    if converter is bool:
+        def boolconverter(s):
             return len(s) > 0 and s.lower() in ('y', 'yes', '1', 'true', 'on')
-        convertor = boolconvertor
-    if modelfield.outer_type_.__name__ == 'List':
+        converter = boolconverter
+    if converter is list:
         assert val_str[0] == '[' and val_str[-1] == ']', "expected array-value needs to be surrounded with []"
         val_str = val_str[1:-1]
-        return [convertor(v.strip()) for v in val_str.split(',')]
-    # else
-    return convertor(val_str)
+        return [converter(v.strip()) for v in val_str.split(',')]
+    if converter is None:
+        log.warning(
+            f"no converter for {modelfield.title} not converting {val_str}")
+        return val_str
+    return converter(val_str)
 
 
 class ParseDict(Action):
@@ -756,7 +763,7 @@ def add_force_argument(ap: ArgumentParser):
         help="force the command to be executed without interaction.")
 
 
-def add_id_argument(ap: ArgumentParser, model_cls: ModelMetaclass):
+def add_id_argument(ap: ArgumentParser, model_cls):
     """ Adds the --input argument in a consistent way
     """
     name = model_cls.__name__.lower()
@@ -766,7 +773,7 @@ def add_id_argument(ap: ArgumentParser, model_cls: ModelMetaclass):
         help="identifier of the {name} (integer)")
 
 
-def add_input_arguments(ap: ArgumentParser, model_cls: ModelMetaclass, too_complex_for_cli_keyvals: bool = False):
+def add_input_arguments(ap: ArgumentParser, model_cls, too_complex_for_cli_keyvals: bool = False):
     """ Adds the --input -i and --infile -I  argument in a consistent way
     The -i argument takes key-value pairs to construct models rather then provide those in json via stdin (for simple models only)
     The -I argument specifies an input file to use in stead of stdin
@@ -780,7 +787,7 @@ def add_input_arguments(ap: ArgumentParser, model_cls: ModelMetaclass, too_compl
     if too_complex_for_cli_keyvals:
         return
     # else allow key-val --input
-    fields = model_cls.__fields__.keys()  # type: ignore
+    fields = model_cls.model_fields.keys()  # type: ignore
     ap.add_argument(
         '--input', '-i',
         action=ParseDict,
@@ -1172,14 +1179,14 @@ def enable_logging(logconf=None):
 
 
 # helper function to instantiate the client
-def make_amplipi(args: Namespace) -> AmpliPi:
+def make_amplipi(args: Namespace, loop) -> AmpliPi:
     """ Constructs the amplipi client
     """
     endpoint: str = args.amplipi
     timeout: int = args.timeout
     # in shell modus we got frequent server-disconnected-errors - injecting this custom session avoids that
-    connector: TCPConnector = TCPConnector(force_close=True)
-    http_session: ClientSession = ClientSession(connector=connector)
+    connector: TCPConnector = TCPConnector(force_close=True, loop=loop)
+    http_session: ClientSession = ClientSession(connector=connector, loop=loop)
     return AmpliPi(endpoint, timeout=timeout, http_session=http_session)
 
 
@@ -1198,10 +1205,10 @@ def main():
         sys.exit(1)
 
     enable_logging(logconf=args.logconf)
-    amplipi = make_amplipi(args)
 
     # setup async wait construct for main routines
     loop = asyncio.get_event_loop_policy().get_event_loop()
+    amplipi = make_amplipi(args, loop)
     try:
         # trigger the actual called action-function (async) and wait for it
         loop.run_until_complete(
