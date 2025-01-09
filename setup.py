@@ -3,7 +3,7 @@
 import os
 import sys
 
-VERSION = '0.4.11'
+VERSION = '0.4.12'
 NAME = 'pyamplipi'
 
 try:
@@ -59,7 +59,10 @@ setup(
     entry_points=dict(console_scripts=console_scripts),
     packages=['pyamplipi'],
     classifiers=['Development Status :: 4 - Beta',
-                 'Programming Language :: Python :: 3.5',
-                 'Programming Language :: Python :: 3.6'],
+                 'Programming Language :: Python :: 3.9',
+                 'Programming Language :: Python :: 3.10',
+                 'Programming Language :: Python :: 3.11',
+                 'Programming Language :: Python :: 3.12',
+                 ],
     zip_safe=True,
 )
