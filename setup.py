@@ -59,7 +59,10 @@ setup(
     entry_points=dict(console_scripts=console_scripts),
     packages=['pyamplipi'],
     classifiers=['Development Status :: 4 - Beta',
-                 'Programming Language :: Python :: 3.5',
-                 'Programming Language :: Python :: 3.6'],
+                 'Programming Language :: Python :: 3.9',
+                 'Programming Language :: Python :: 3.10',
+                 'Programming Language :: Python :: 3.11',
+                 'Programming Language :: Python :: 3.12',
+                 ],
     zip_safe=True,
 )
